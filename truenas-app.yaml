@@ -1,22 +1,34 @@
 # ============================================================
-# TELETRAAN I — TrueNAS SCALE Custom App Definition
+# TELETRAAN I — TrueNAS SCALE Custom App
+# Source: https://github.com/ImSpin/teletraan-dashboard
 #
-# HOW TO DEPLOY ON TRUENAS SCALE:
-#   Apps → Discover Apps → Custom App → paste this YAML
-#   (TrueNAS SCALE 23.10+ supports docker-compose style custom apps)
+# HOW TO INSTALL:
+#   Apps → Discover Apps → Custom App
+#   → Install via YAML → paste this file → Install
 #
-# Alternatively use: Apps → Custom App → Use Docker Compose
-# and paste the "services:" section below.
-#
-# The dashboard runs on port 7070.
-# Access it at: http://<your-truenas-ip>:7070
+# On every container start, the init container pulls the
+# latest files from GitHub automatically. No manual SCP needed.
 # ============================================================
-
-version: "3.8"
 
 services:
 
-  # ── Dashboard (serves the HTML file via Python http.server) ──
+  # ── Init: pulls latest files from GitHub before anything starts ──
+  teletraan-init:
+    image: alpine:latest
+    container_name: teletraan-init
+    volumes:
+      - teletraan-files:/app
+    command: >
+      sh -c "
+        apk add --no-cache git &&
+        git clone https://github.com/ImSpin/teletraan-dashboard.git /tmp/repo &&
+        cp /tmp/repo/teletraan-dashboard.html /app/index.html &&
+        cp /tmp/repo/agent.py /app/agent.py &&
+        echo 'Files ready.'
+      "
+    restart: "no"
+
+  # ── Dashboard: serves the HTML file ──────────────────────────────
   teletraan-dashboard:
     image: python:3.12-slim
     container_name: teletraan-dashboard
@@ -24,29 +36,20 @@ services:
     ports:
       - "7070:7070"
     volumes:
-      # Map a TrueNAS dataset to hold the dashboard file.
-      # Create a dataset first: Storage → Add Dataset → "teletraan"
-      # Default TrueNAS path shown below — adjust to your pool name.
-      - /mnt/tank0/teletraan:/app:ro
+      - teletraan-files:/app:ro
     working_dir: /app
     command: >
-      sh -c "
-        echo 'TELETRAAN I starting on port 7070...' &&
-        python3 -m http.server 7070 --bind 0.0.0.0
-      "
+      sh -c "python3 -m http.server 7070 --bind 0.0.0.0"
+    depends_on:
+      teletraan-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7070/')"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 5s
-    labels:
-      - "teletraan.role=dashboard"
-      - "teletraan.ha=primary"
 
-  # ── Agent on TrueNAS itself ──────────────────────────────────
-  # This exposes TrueNAS's own hardware stats to the dashboard.
-  # NOTE: needs privileged + host network to read sensors.
+  # ── Agent: exposes this machine's hardware stats ─────────────────
   teletraan-agent:
     image: python:3.12-slim
     container_name: teletraan-agent
@@ -55,7 +58,7 @@ services:
     privileged: true
     pid: "host"
     volumes:
-      - /mnt/tank0/teletraan/agent.py:/app/agent.py:ro
+      - teletraan-files:/app:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
     working_dir: /app
@@ -65,45 +68,31 @@ services:
       - HOST_SYS=/host/sys
     command: >
       sh -c "
-        pip install psutil flask flask-cors -q --break-system-packages 2>/dev/null || true &&
+        apt-get update -qq &&
+        apt-get install -y -q smartmontools &&
+        pip install psutil flask flask-cors -q --break-system-packages &&
         python3 /app/agent.py
       "
+    depends_on:
+      teletraan-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7071/health')"]
       interval: 15s
       timeout: 5s
       retries: 3
 
-# ── Named volume alternative (if you prefer not to use a dataset path) ──
-# Uncomment and remove the bind mount above if you want Docker to manage storage.
-# volumes:
-#   teletraan-data:
-#     driver: local
+# ── Shared volume holds the cloned repo files ────────────────────
+volumes:
+  teletraan-files:
+    driver: local
 
 # ============================================================
-# SETUP STEPS FOR TRUENAS SCALE:
+# UPDATING:
+#   Apps → teletraan → Stop → Start
+#   The init container will git pull on every startup.
 #
-#  1. Create a dataset for the dashboard files:
-#       Storage → Add Dataset
-#       Name: teletraan
-#       Path will be: /mnt/<your-pool>/teletraan
-#
-#  2. Upload the two files to that dataset (via SMB share or SCP):
-#       - teletraan-dashboard.html  (rename to index.html)
-#       - agent.py
-#
-#  3. Deploy this app:
-#       Apps → Discover Apps → Custom App
-#       Paste the services: block above
-#
-#  4. Access dashboard at:
-#       http://<truenas-ip>:7070
-#
-#  5. On each OTHER Ubuntu machine run:
-#       sudo bash deploy-agent.sh 7071
-#     (or a different port per machine if 7071 is taken)
-#
-#  6. Add each machine in the dashboard:
-#       Sidebar → + button
-#       IP: <machine-ip>, Agent Port: 7071
+# Or from SSH:
+#   sudo docker restart teletraan-init && \
+#   sudo docker restart teletraan-dashboard teletraan-agent
 # ============================================================
