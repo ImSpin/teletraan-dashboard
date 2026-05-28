@@ -1128,7 +1128,8 @@ body::after {
           <div class="tt-panel">
             <div class="tt-panel-header">
               <span class="tt-panel-title">◈ USER MANAGEMENT</span>
-              <button class="tt-btn sm" onclick="showAddUserModal()">+ ADD USER</button>
+              <button class="tt-btn sm danger" onclick="showAddUserModal()">+ ADD USER</button>
+          <button class="tt-btn sm amber" onclick="clearDemoData()" title="Remove all demo/fake data from cache">⟳ CLEAR DEMO DATA</button>
             </div>
             <div class="tt-panel-body">
               <table class="user-list-table">
@@ -1943,7 +1944,7 @@ function renderDocker() {
     return `<tr>
       <td><span style="font-size:15px;margin-right:6px;">${d.icon||'🐳'}</span>${d.name}</td>
       <td style="color:var(--tt-text3);font-size:10px;">${d.image}</td>
-      <td style="color:var(--tt-text2);">${m ? m.name : d.machine}</td>
+      <td style="color:var(--tt-text2);">${m ? m.name : '—'}</td>
       <td><span class="status-pill ${d.status}">${d.status.toUpperCase()}</span></td>
       <td style="color:var(--tt-text3);">:${d.port}</td>
       <td><button class="tt-btn sm" onclick="window.open('${url}','_blank')" ${d.port ? '' : 'disabled'}>↗ OPEN</button></td>
@@ -2245,7 +2246,22 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#user-badge')) closeUserMenu();
 });
 
-function addMachine() {
+function clearDemoData() {
+  if (!confirm('Clear all cached machines, containers and pools? Real data will re-populate from agents automatically. Users and shortcuts are kept.')) return;
+  DB.set('machines', []);
+  DB.set('docker', []);
+  DB.set('pools', []);
+  state.selectedMachineId = null;
+  state.dockerFilter = 'all';
+  renderMachineList();
+  renderDocker();
+  renderStorage();
+  renderShortcuts();
+  renderNetwork();
+  showToast('ok', 'CACHE CLEARED', 'Demo data removed. Add your real nodes via the + button.');
+}
+
+
   const ip = document.getElementById('new-machine-ip').value.trim();
   if (!ip) { alert('Enter an IP address or hostname'); return; }
   let name = document.getElementById('new-machine-name').value.trim();
@@ -2487,10 +2503,12 @@ function applyLiveData(m, d) {
   document.getElementById('cpu-temp').className = `stat-value ${ct>85?'crit':ct>70?'warn':'ok'}`;
   document.getElementById('cpu-temp').innerHTML = `${ct?ct.toFixed(0):'N/A'}<span class="stat-unit">${ct?'°C':''}</span>`;
   document.getElementById('cpu-temp-sub').textContent = ct>85?'⚠ THERMAL THROTTLE RISK':ct>70?'ELEVATED':'NOMINAL';
-  document.getElementById('cpu-freq').innerHTML = d.cpu?.freq_current && d.cpu.freq_current > 0
-    ? `${d.cpu.freq_current.toFixed(2)}<span class="stat-unit">GHz</span>`
-    : d.cpu?.freq_max ? `${d.cpu.freq_max.toFixed(2)}<span class="stat-unit">GHz</span>`
-    : `—`;
+  document.getElementById('cpu-freq').innerHTML = (() => {
+    const fmax = d.cpu?.freq_max;
+    const fcur = d.cpu?.freq_current;
+    const f = (fmax && fmax > 0.5) ? fmax : (fcur && fcur > 0.5) ? fcur : null;
+    return f ? `${f.toFixed(2)}<span class="stat-unit">GHz</span>` : `—`;
+  })();
   document.getElementById('cpu-model').textContent = d.cpu?.model || '—';
   document.getElementById('cpu-cores').innerHTML =
     `${d.cpu?.cores_physical||'?'}<span class="stat-unit">C</span> / ${d.cpu?.cores_logical||'?'}<span class="stat-unit">T</span>`;
@@ -2616,6 +2634,56 @@ function applyLiveData(m, d) {
       }
     });
     if (changed) { DB.set('pools', pools); if (state.view === 'storage') renderStorage(); }
+  }
+
+  // Docker containers — auto-discover from agent
+  if (d.docker && d.docker.length > 0) {
+    const containers = DB.get('docker', []);
+    let changed = false;
+    d.docker.forEach(c => {
+      const existing = containers.find(x => x.name === c.name && x.machine === m.id);
+      if (existing) {
+        // Update status
+        existing.status = c.running ? 'running' : 'stopped';
+        if (c.port && !existing.port) existing.port = c.port;
+        changed = true;
+      } else {
+        // Auto-add new container
+        const iconMap = {
+          jellyfin: '📺', plex: '🎬', portainer: '🐳', nextcloud: '☁️',
+          homeassistant: '🏠', 'home-assistant': '🏠', vaultwarden: '🔐',
+          immich: '📷', tailscale: '🔒', nginx: '🌐', grafana: '📊',
+          prometheus: '📈', pihole: '🛡️', unifi: '📡', bitwarden: '🔑',
+          gitea: '🐱', ntfy: '🔔', dashy: '🖥️', glances: '👁️',
+          glance: '👁️', meilisearch: '🔍', 'open-speed-test': '⚡',
+          beszel: '📊', traefik: '🔀', caddy: '🔀', wireguard: '🔒',
+        };
+        const icon = Object.entries(iconMap).find(([k]) => c.name.toLowerCase().includes(k))?.[1] || '🐳';
+        containers.push({
+          id: 'auto_' + c.name + '_' + m.id,
+          name: c.name,
+          image: c.image || '',
+          machine: m.id,
+          status: c.running ? 'running' : 'stopped',
+          port: c.port || 0,
+          icon,
+          cpu: '—', mem: '—',
+          autoDiscovered: true,
+        });
+        changed = true;
+      }
+    });
+    // Remove auto-discovered containers for this machine that no longer exist
+    const agentNames = new Set(d.docker.map(c => c.name));
+    const filtered = containers.filter(c =>
+      !(c.autoDiscovered && c.machine === m.id && !agentNames.has(c.name))
+    );
+    if (filtered.length !== containers.length) changed = true;
+    if (changed) {
+      DB.set('docker', filtered.length !== containers.length ? filtered : containers);
+      if (state.view === 'docker') renderDocker();
+      if (state.view === 'shortcuts') renderShortcuts();
+    }
   }
 
   document.getElementById('cpu-spinner').style.display = 'none';

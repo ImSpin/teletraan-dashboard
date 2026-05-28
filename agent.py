@@ -44,11 +44,26 @@ def get_hostname():
 
 def get_cpu():
     freq = safe(lambda: psutil.cpu_freq())
+    # Prefer max frequency (base clock) over current (which reads idle/boosted state)
+    # If max is 0 or unavailable, use current
+    freq_display = None
+    if freq:
+        if freq.max and freq.max > 0:
+            freq_display = round(freq.max / 1000, 2)
+        elif freq.current and freq.current > 0:
+            freq_display = round(freq.current / 1000, 2)
+    # Also try reading from /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq
+    if not freq_display or freq_display < 0.1:
+        try:
+            with open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq') as f:
+                freq_display = round(int(f.read().strip()) / 1_000_000, 2)
+        except Exception:
+            pass
     return {
         "percent": psutil.cpu_percent(interval=0.5),
         "per_cpu": psutil.cpu_percent(interval=0.5, percpu=True),
-        "freq_current": round(freq.current / 1000, 2) if freq else None,
-        "freq_max":     round(freq.max / 1000, 2)     if freq else None,
+        "freq_current": round(freq.current / 1000, 2) if freq and freq.current else None,
+        "freq_max":     freq_display,
         "cores_physical": psutil.cpu_count(logical=False),
         "cores_logical":  psutil.cpu_count(logical=True),
         "model": platform.processor() or "Unknown",
@@ -288,18 +303,34 @@ def get_zfs_pools():
     return pools
 
 
+def get_docker_containers():
+    """Get all Docker containers with name, image, status, ports, and resource usage."""
+    containers = []
     try:
+        # Get basic container info
         out = subprocess.check_output(
             ["docker", "ps", "-a", "--format",
-             '{"name":"{{.Names}}","image":"{{.Image}}","status":"{{.Status}}","ports":"{{.Ports}}"}'],
+             '{"name":"{{.Names}}","image":"{{.Image}}","status":"{{.Status}}","ports":"{{.Ports}}","id":"{{.ID}}"}'],
             text=True, timeout=5)
-        containers = []
         for line in out.strip().splitlines():
-            try: containers.append(json.loads(line))
-            except: pass
-        return containers
+            if not line.strip(): continue
+            try:
+                c = json.loads(line)
+                # Determine running state
+                c["running"] = c["status"].lower().startswith("up")
+                # Extract first exposed port number for shortcut URL
+                port = None
+                if c.get("ports"):
+                    import re
+                    m = re.search(r'0\.0\.0\.0:(\d+)->', c["ports"])
+                    if m: port = int(m.group(1))
+                c["port"] = port
+                containers.append(c)
+            except Exception:
+                pass
     except Exception:
-        return []
+        pass
+    return containers
 
 # ── Routes ─────────────────────────────────────────────────────────────────
 
@@ -322,6 +353,7 @@ def stats():
             "version": platform.version()[:60],
         },
         "zfs_pools": get_zfs_pools(),
+        "docker":    get_docker_containers(),
         "timestamp": int(time.time()),
     })
 
