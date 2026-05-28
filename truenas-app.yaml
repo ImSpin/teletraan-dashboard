@@ -14,12 +14,13 @@ services:
 
   # ── Init: pulls latest files from GitHub before anything starts ──
   teletraan-init:
-    image: alpine/git:latest
+    image: alpine:latest
     container_name: teletraan-init
     volumes:
       - teletraan-files:/app
     command: >
       sh -c "
+        apk add --no-cache git &&
         if [ -d /app/.git ]; then
           echo 'Pulling latest from GitHub...' &&
           cd /app && git pull origin main;
