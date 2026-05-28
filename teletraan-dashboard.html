@@ -2262,18 +2262,32 @@ function clearDemoData() {
 }
 
 function addMachine() {
-  if (!ip) { alert('Enter an IP address or hostname'); return; }
-  let name = document.getElementById('new-machine-name').value.trim();
-  const type = document.getElementById('new-machine-type').value;
+  const ip   = document.getElementById('new-machine-ip').value.trim();
   const port = parseInt(document.getElementById('new-machine-port').value) || 7071;
-  if (!name) name = ip.split('.').slice(-1)[0] ? 'NODE-' + ip.split('.').slice(-1)[0] : ip;
+  let name   = document.getElementById('new-machine-name').value.trim();
+  const type = document.getElementById('new-machine-type').value;
+  if (!ip) { alert('Enter an IP address or hostname'); return; }
+  if (!name) name = 'NODE-' + ip.split('.').pop();
   const machines = DB.get('machines', []);
   machines.push({ id: 'm' + Date.now(), name: name.toUpperCase(), ip, type, port, online: true, lastSeen: Date.now() });
   DB.set('machines', machines);
   closeModal('modal-add-machine');
   renderMachineList();
   renderNetwork();
-  showToast('info', 'NODE ADDED', `${name} added to the network.`);
+  showToast('info', 'NODE ADDED', `${name.toUpperCase()} added. Querying agent...`);
+  // Auto-detect name from agent in background
+  fetchAgentIdentity({ ip, port }).then(detected => {
+    if (detected) {
+      const ms = DB.get('machines', []);
+      const m = ms.find(x => x.ip === ip);
+      if (m && m.name.startsWith('NODE-')) {
+        m.name = detected;
+        DB.set('machines', ms);
+        renderMachineList();
+        showToast('ok', 'AUTO-DETECTED', `Node renamed to: ${detected}`);
+      }
+    }
+  });
 }
 
 function removeMachine() {
@@ -2445,26 +2459,6 @@ async function fetchAgentIdentity(machine) {
   } catch(e) {}
   return null;
 }
-
-// Override addMachine to auto-detect name via agent
-const _origAddMachine = addMachine;
-window.addMachine = async function() {
-  const ip   = document.getElementById('new-machine-ip').value.trim();
-  const port = parseInt(document.getElementById('new-machine-port').value) || 7071;
-  let name   = document.getElementById('new-machine-name').value.trim();
-  if (!ip) { alert('Enter an IP address or hostname'); return; }
-
-  // Try auto-detect if no name given
-  if (!name) {
-    showToast('info', 'AUTO-DETECT', `Querying ${ip}:${port} for machine identity...`);
-    const detected = await fetchAgentIdentity({ ip, port });
-    if (detected) {
-      document.getElementById('new-machine-name').value = detected;
-      showToast('ok', 'DETECTED', `Found: ${detected}`);
-    }
-  }
-  _origAddMachine();
-};
 
 // Extend updateSystemStats to prefer live agent data
 const _origUpdateSystemStats = updateSystemStats;
