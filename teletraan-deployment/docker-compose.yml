@@ -1,0 +1,56 @@
+# ============================================================
+# TELETRAAN I — Dashboard Host Container
+# Deploy this on 2-3 machines for HA failover.
+# The dashboard file is bind-mounted so edits are live.
+# ============================================================
+
+services:
+  teletraan-dashboard:
+    image: nginx:alpine
+    container_name: teletraan-dashboard
+    restart: unless-stopped
+    ports:
+      - "7070:80"          # Dashboard UI  — http://<machine-ip>:7070
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./teletraan-dashboard.html:/usr/share/nginx/html/index.html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "teletraan.role=dashboard"
+      - "teletraan.version=2.0"
+
+  # Optional: Teletraan Agent — exposes THIS machine's stats
+  # The agent runs on port 7071 by default to avoid conflicts.
+  teletraan-agent:
+    image: python:3.12-alpine
+    container_name: teletraan-agent
+    restart: unless-stopped
+    network_mode: host          # needs host network to read system stats
+    pid: "host"                 # needs host PID namespace for process info
+    privileged: true            # needed for drive temps (smartctl)
+    ports:
+      - "7071:7071"             # Agent API — queried by the dashboard
+    volumes:
+      - ./agent.py:/app/agent.py:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    working_dir: /app
+    command: >
+      sh -c "pip install psutil flask flask-cors py-cpuinfo pynvml smartmontools 2>/dev/null || true;
+             pip install psutil flask flask-cors py-cpuinfo 2>/dev/null;
+             python agent.py"
+    environment:
+      - AGENT_PORT=7071
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+    labels:
+      - "teletraan.role=agent"
+
+networks:
+  default:
+    name: teletraan-net

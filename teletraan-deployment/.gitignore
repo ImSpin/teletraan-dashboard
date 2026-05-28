@@ -1,0 +1,36 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets — never commit API keys or passwords
+*.env
+.env*
+secrets.yaml
+secrets.yml
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# Node (if anyone adds a build step later)
+node_modules/
+
+# Old/backup files
+*.bak
+*.orig

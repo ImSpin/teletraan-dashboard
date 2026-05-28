@@ -1,0 +1,2673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TELETRAAN I — AUTOBOT COMMAND NETWORK</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --tt-bg: #020b0f;
+  --tt-bg2: #040f15;
+  --tt-panel: #061520;
+  --tt-panel2: #0a1f2e;
+  --tt-border: #0d4a6e;
+  --tt-border2: #1a7aa8;
+  --tt-cyan: #00d4ff;
+  --tt-cyan2: #00a8cc;
+  --tt-amber: #ff9500;
+  --tt-amber2: #ffb800;
+  --tt-red: #ff3a2a;
+  --tt-green: #00ff7f;
+  --tt-green2: #00cc60;
+  --tt-dim: #1e4a62;
+  --tt-text: #b8e8f8;
+  --tt-text2: #6aafcf;
+  --tt-text3: #3a6e8a;
+  --tt-warning: #ff6b00;
+  --tt-critical: #ff1a1a;
+  --tt-ok: #00e676;
+  --tt-scan: rgba(0, 212, 255, 0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--tt-bg);
+  color: var(--tt-text);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: default;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,100,150,0.03) 2px,
+    rgba(0,100,150,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* SCANLINE ANIMATION */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+body::after {
+  content: '';
+  position: fixed;
+  left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(transparent, rgba(0,212,255,0.08), transparent);
+  animation: scanline 6s linear infinite;
+  pointer-events: none;
+  z-index: 999;
+}
+
+@keyframes flicker {
+  0%,100% { opacity:1; } 92%{opacity:1;} 93%{opacity:0.92;} 94%{opacity:1;} 97%{opacity:0.96;} 98%{opacity:1;}
+}
+@keyframes pulse-border {
+  0%,100% { border-color: var(--tt-border); box-shadow: 0 0 8px rgba(0,212,255,0.1); }
+  50% { border-color: var(--tt-border2); box-shadow: 0 0 16px rgba(0,212,255,0.25); }
+}
+@keyframes blink { 0%,49%{opacity:1;} 50%,100%{opacity:0;} }
+@keyframes slide-in { from{transform:translateX(-20px);opacity:0;} to{transform:translateX(0);opacity:1;} }
+@keyframes fade-in { from{opacity:0;} to{opacity:1;} }
+@keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+@keyframes data-scroll {
+  0%{transform:translateY(0);} 100%{transform:translateY(-50%);}
+}
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes status-glow {
+  0%,100% { text-shadow: 0 0 4px currentColor; }
+  50% { text-shadow: 0 0 12px currentColor, 0 0 24px currentColor; }
+}
+
+/* LOGIN SCREEN */
+#login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tt-bg);
+  animation: flicker 8s infinite;
+}
+#login-screen.hidden { display: none; }
+
+.login-box {
+  width: 420px;
+  border: 1px solid var(--tt-border2);
+  background: var(--tt-panel);
+  padding: 0;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0,212,255,0.15), inset 0 0 40px rgba(0,20,40,0.8);
+  animation: pulse-border 3s ease-in-out infinite;
+}
+
+.login-header {
+  background: var(--tt-panel2);
+  border-bottom: 1px solid var(--tt-border);
+  padding: 20px 24px;
+  text-align: center;
+}
+.login-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--tt-cyan);
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(0,212,255,0.6);
+  margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 10px;
+  color: var(--tt-text3);
+  letter-spacing: 3px;
+}
+
+.login-form { padding: 28px 24px; }
+
+.login-corner { position: absolute; width: 12px; height: 12px; border-color: var(--tt-cyan); border-style: solid; }
+.login-corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.login-corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.login-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.login-corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+.field-group { margin-bottom: 18px; }
+.field-label { font-size: 10px; letter-spacing: 2px; color: var(--tt-text2); margin-bottom: 6px; display: block; }
+.tt-input {
+  width: 100%;
+  background: rgba(0,20,40,0.8);
+  border: 1px solid var(--tt-border);
+  color: var(--tt-cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tt-input:focus {
+  border-color: var(--tt-cyan);
+  box-shadow: 0 0 12px rgba(0,212,255,0.2);
+}
+.tt-input::placeholder { color: var(--tt-dim); }
+
+.tt-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--tt-cyan);
+  color: var(--tt-cyan);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.tt-btn:hover {
+  background: rgba(0,212,255,0.1);
+  box-shadow: 0 0 20px rgba(0,212,255,0.3);
+}
+.tt-btn:active { transform: scale(0.98); }
+.tt-btn.danger { border-color: var(--tt-red); color: var(--tt-red); }
+.tt-btn.danger:hover { background: rgba(255,58,42,0.1); box-shadow: 0 0 20px rgba(255,58,42,0.3); }
+.tt-btn.amber { border-color: var(--tt-amber); color: var(--tt-amber); }
+.tt-btn.amber:hover { background: rgba(255,149,0,0.1); }
+.tt-btn.green { border-color: var(--tt-green); color: var(--tt-green); }
+.tt-btn.green:hover { background: rgba(0,255,127,0.1); }
+.tt-btn.sm { font-size: 10px; padding: 7px 14px; width: auto; letter-spacing: 2px; }
+
+.login-error {
+  color: var(--tt-red);
+  font-size: 11px;
+  text-align: center;
+  margin-top: 12px;
+  min-height: 18px;
+  letter-spacing: 1px;
+}
+
+/* TOP BAR */
+#app { display: none; flex-direction: column; min-height: 100vh; animation: fade-in 0.5s ease; }
+#app.visible { display: flex; }
+
+.top-bar {
+  background: var(--tt-panel2);
+  border-bottom: 1px solid var(--tt-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 52px;
+  gap: 16px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+
+.top-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--tt-cyan);
+  letter-spacing: 3px;
+  text-shadow: 0 0 15px rgba(0,212,255,0.5);
+  white-space: nowrap;
+}
+.top-logo span { color: var(--tt-amber); }
+
+.top-tagline {
+  font-size: 9px;
+  color: var(--tt-text3);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.top-clock {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--tt-amber);
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.top-spacer { flex: 1; }
+
+.nav-tabs { display: flex; gap: 2px; align-items: center; }
+.nav-tab {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--tt-text3);
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: var(--tt-cyan); border-color: var(--tt-border); }
+.nav-tab.active {
+  color: var(--tt-cyan);
+  border-color: var(--tt-border2);
+  background: rgba(0,212,255,0.06);
+  text-shadow: 0 0 8px rgba(0,212,255,0.4);
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--tt-border);
+  background: rgba(0,20,40,0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.user-badge:hover { border-color: var(--tt-cyan); background: rgba(0,212,255,0.06); }
+.user-badge-name { font-size: 11px; color: var(--tt-text); letter-spacing: 1px; }
+.user-badge-role { font-size: 9px; color: var(--tt-amber); letter-spacing: 1px; }
+
+.alert-badge {
+  background: var(--tt-red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 2px;
+  animation: blink 1s step-start infinite;
+  font-family: 'Orbitron', sans-serif;
+}
+
+/* MAIN LAYOUT */
+.main-layout { display: flex; flex: 1; overflow: hidden; }
+
+/* LEFT SIDEBAR - MACHINE LIST */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--tt-bg2);
+  border-right: 1px solid var(--tt-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--tt-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-title { font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px; color: var(--tt-text2); }
+.icon-btn {
+  background: none;
+  border: 1px solid var(--tt-border);
+  color: var(--tt-text2);
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.icon-btn:hover { border-color: var(--tt-cyan); color: var(--tt-cyan); }
+
+.machine-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(13,74,110,0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  animation: slide-in 0.3s ease;
+}
+.machine-item:hover { background: rgba(0,212,255,0.04); }
+.machine-item.active { background: rgba(0,212,255,0.08); border-left: 2px solid var(--tt-cyan); }
+.machine-item.offline { opacity: 0.6; }
+
+.machine-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 7px;
+  flex-shrink: 0;
+}
+.machine-status-dot.online { background: var(--tt-green); box-shadow: 0 0 6px var(--tt-green); }
+.machine-status-dot.offline { background: var(--tt-red); animation: blink 1.5s ease infinite; }
+.machine-status-dot.warning { background: var(--tt-amber); box-shadow: 0 0 6px var(--tt-amber); }
+
+.machine-name { font-size: 12px; color: var(--tt-text); letter-spacing: 0.5px; }
+.machine-type { font-size: 9px; color: var(--tt-text3); letter-spacing: 1px; margin-top: 2px; }
+.machine-ip { font-size: 9px; color: var(--tt-text3); margin-top: 1px; }
+
+.machine-actions {
+  display: none;
+  gap: 4px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.machine-item:hover .machine-actions { display: flex; }
+
+/* CONTENT AREA */
+.content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+/* SECTION CONTAINERS */
+.tt-panel {
+  background: var(--tt-panel);
+  border: 1px solid var(--tt-border);
+  position: relative;
+  animation: pulse-border 4s ease-in-out infinite;
+}
+.tt-panel-header {
+  background: var(--tt-panel2);
+  border-bottom: 1px solid var(--tt-border);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tt-panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--tt-cyan);
+  text-shadow: 0 0 8px rgba(0,212,255,0.3);
+}
+.tt-panel-body { padding: 14px; }
+
+/* STAT GRID */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+
+.stat-card {
+  background: var(--tt-bg2);
+  border: 1px solid var(--tt-border);
+  padding: 12px 14px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--tt-border2); }
+
+.stat-label { font-size: 9px; letter-spacing: 2px; color: var(--tt-text3); margin-bottom: 6px; }
+.stat-value { font-family: 'Orbitron', sans-serif; font-size: 22px; font-weight: 600; color: var(--tt-cyan); }
+.stat-value.ok { color: var(--tt-green); }
+.stat-value.warn { color: var(--tt-amber); }
+.stat-value.crit { color: var(--tt-red); animation: status-glow 1s ease-in-out infinite; }
+.stat-unit { font-size: 11px; color: var(--tt-text2); margin-left: 3px; }
+.stat-sub { font-size: 10px; color: var(--tt-text3); margin-top: 4px; }
+
+/* BAR METERS */
+.meter-wrap { margin-top: 8px; }
+.meter-label-row { display: flex; justify-content: space-between; font-size: 9px; color: var(--tt-text3); margin-bottom: 4px; letter-spacing: 1px; }
+.meter-track {
+  height: 4px;
+  background: rgba(13,74,110,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  background: var(--tt-cyan);
+  transform-origin: left;
+  animation: bar-grow 0.8s ease-out;
+  transition: width 1s ease, background 0.5s;
+}
+.meter-fill.warn { background: var(--tt-amber); }
+.meter-fill.crit { background: var(--tt-red); }
+
+/* THREAD BARS */
+.thread-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px; }
+.thread-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.thread-bar-container { width: 100%; height: 50px; background: rgba(13,74,110,0.2); position: relative; overflow: hidden; }
+.thread-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--tt-cyan); transition: height 1s ease; }
+.thread-bar.warn { background: var(--tt-amber); }
+.thread-bar.crit { background: var(--tt-red); }
+.thread-num { font-size: 8px; color: var(--tt-text3); }
+
+/* DOCKER CONTAINERS */
+.docker-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.docker-table th {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--tt-text3);
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--tt-border);
+}
+.docker-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(13,74,110,0.3);
+  color: var(--tt-text);
+  vertical-align: middle;
+}
+.docker-table tr:hover td { background: rgba(0,212,255,0.03); }
+
+.status-pill {
+  display: inline-block;
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  font-family: 'Orbitron', sans-serif;
+}
+.status-pill.running { background: rgba(0,255,127,0.1); color: var(--tt-green); border: 1px solid rgba(0,255,127,0.3); }
+.status-pill.stopped { background: rgba(255,58,42,0.1); color: var(--tt-red); border: 1px solid rgba(255,58,42,0.3); }
+.status-pill.warning { background: rgba(255,149,0,0.1); color: var(--tt-amber); border: 1px solid rgba(255,149,0,0.3); }
+
+/* NETWORK MONITOR */
+.network-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.network-card {
+  border: 1px solid var(--tt-border);
+  background: var(--tt-bg2);
+  padding: 12px 14px;
+  position: relative;
+  transition: all 0.3s;
+}
+.network-card.offline {
+  border-color: var(--tt-red);
+  animation: pulse-border 0.5s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(255,58,42,0.2);
+}
+.network-name { font-size: 12px; color: var(--tt-text); margin-bottom: 4px; }
+.network-ip { font-size: 10px; color: var(--tt-text3); font-family: 'Share Tech Mono', monospace; }
+.network-latency { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 600; margin-top: 8px; }
+
+/* SPARKLINES */
+.sparkline { width: 100%; height: 32px; }
+
+/* SHORTCUTS */
+.shortcuts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.shortcut-card {
+  border: 1px solid var(--tt-border);
+  background: var(--tt-bg2);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  position: relative;
+}
+.shortcut-card:hover { border-color: var(--tt-cyan); background: rgba(0,212,255,0.06); transform: translateY(-1px); }
+.shortcut-icon { font-size: 18px; }
+.shortcut-name { font-size: 11px; color: var(--tt-text); letter-spacing: 0.5px; }
+.shortcut-url { font-size: 9px; color: var(--tt-text3); letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.shortcut-del {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: none;
+  border: none;
+  color: var(--tt-dim);
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 2px 4px;
+}
+.shortcut-card:hover .shortcut-del { opacity: 1; }
+.shortcut-del:hover { color: var(--tt-red); }
+.add-shortcut {
+  border: 1px dashed var(--tt-border);
+  background: transparent;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--tt-text3);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.add-shortcut:hover { border-color: var(--tt-cyan); color: var(--tt-cyan); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in 0.2s ease;
+}
+.modal-overlay.hidden { display: none; }
+.modal-box {
+  background: var(--tt-panel);
+  border: 1px solid var(--tt-border2);
+  width: 460px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 0 60px rgba(0,212,255,0.15);
+  animation: slide-in 0.3s ease;
+}
+.modal-header {
+  background: var(--tt-panel2);
+  border-bottom: 1px solid var(--tt-border);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-title { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 3px; color: var(--tt-cyan); }
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--tt-text3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.modal-close:hover { color: var(--tt-red); }
+.modal-body { padding: 20px 18px; }
+.modal-footer { padding: 14px 18px; border-top: 1px solid var(--tt-border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* TABS WITHIN VIEWS */
+.view { display: none; }
+.view.active { display: block; }
+
+/* NETWORK THROUGHPUT CHART */
+.net-chart-area { position: relative; height: 80px; overflow: hidden; }
+.net-chart-canvas { width: 100%; height: 100%; }
+
+/* USER MENU DROPDOWN */
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 180px;
+  background: var(--tt-panel);
+  border: 1px solid var(--tt-border2);
+  z-index: 500;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+.user-menu-dropdown.hidden { display: none; }
+.user-menu-item {
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--tt-text);
+  cursor: pointer;
+  border-bottom: 1px solid var(--tt-border);
+  transition: background 0.1s;
+  letter-spacing: 1px;
+}
+.user-menu-item:last-child { border-bottom: none; }
+.user-menu-item:hover { background: rgba(0,212,255,0.06); color: var(--tt-cyan); }
+.user-menu-item.danger:hover { background: rgba(255,58,42,0.06); color: var(--tt-red); }
+
+/* ROLLING DATA DISPLAY */
+.data-stream {
+  font-size: 10px;
+  color: var(--tt-text3);
+  height: 60px;
+  overflow: hidden;
+  position: relative;
+}
+.data-stream-inner { animation: data-scroll 20s linear infinite; }
+
+/* ALERT TOAST */
+.alert-container { position: fixed; bottom: 20px; right: 20px; z-index: 9000; display: flex; flex-direction: column; gap: 8px; }
+.alert-toast {
+  background: var(--tt-panel);
+  border: 1px solid var(--tt-red);
+  padding: 12px 16px;
+  box-shadow: 0 0 20px rgba(255,58,42,0.3);
+  animation: slide-in 0.3s ease;
+  max-width: 320px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.alert-toast.info { border-color: var(--tt-cyan); box-shadow: 0 0 20px rgba(0,212,255,0.2); }
+.alert-toast.ok { border-color: var(--tt-green); box-shadow: 0 0 20px rgba(0,255,127,0.2); }
+.alert-toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.alert-toast-title { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px; color: var(--tt-red); margin-bottom: 3px; }
+.alert-toast.info .alert-toast-title { color: var(--tt-cyan); }
+.alert-toast.ok .alert-toast-title { color: var(--tt-green); }
+.alert-toast-msg { font-size: 11px; color: var(--tt-text2); line-height: 1.4; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--tt-bg); }
+::-webkit-scrollbar-thumb { background: var(--tt-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--tt-border2); }
+
+/* CORNER DECORATIONS */
+.corner-deco::before, .corner-deco::after,
+.corner-deco .c3::before, .corner-deco .c3::after {
+  content: '';
+  position: absolute;
+  width: 8px; height: 8px;
+  border-style: solid;
+  border-color: var(--tt-cyan);
+}
+.corner-deco::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.corner-deco::after { top: -1px; right: -1px; border-width: 1px 1px 0 0; }
+.corner-deco .c3::before { bottom: -1px; left: -1px; border-width: 0 0 1px 1px; }
+.corner-deco .c3::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+/* NAS / STORAGE POOL */
+.pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.pool-card { border: 1px solid var(--tt-border); background: var(--tt-bg2); padding: 14px; }
+.pool-name { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--tt-amber); letter-spacing: 2px; margin-bottom: 8px; }
+.pool-type { font-size: 9px; color: var(--tt-text3); letter-spacing: 1px; margin-bottom: 10px; }
+.pool-bar-track { height: 8px; background: rgba(13,74,110,0.3); margin: 6px 0; position: relative; overflow: hidden; }
+.pool-bar-fill { height: 100%; background: linear-gradient(90deg, var(--tt-cyan), var(--tt-amber)); transition: width 1s ease; }
+.pool-stats { display: flex; justify-content: space-between; font-size: 10px; color: var(--tt-text3); margin-top: 6px; }
+
+/* MULTI-ROW LAYOUT */
+.row { display: flex; gap: 16px; }
+.row > .tt-panel { flex: 1; min-width: 0; }
+
+/* ADMIN PANEL */
+.user-list-table { width: 100%; border-collapse: collapse; }
+.user-list-table th { font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px; color: var(--tt-text3); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--tt-border); }
+.user-list-table td { padding: 10px; border-bottom: 1px solid rgba(13,74,110,0.3); font-size: 11px; color: var(--tt-text); vertical-align: middle; }
+
+/* FORMS */
+.form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 100px; }
+.form-label { font-size: 9px; letter-spacing: 2px; color: var(--tt-text3); }
+.form-select {
+  background: rgba(0,20,40,0.8);
+  border: 1px solid var(--tt-border);
+  color: var(--tt-cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+}
+.form-select:focus { border-color: var(--tt-cyan); }
+.form-checkbox { width: 14px; height: 14px; accent-color: var(--tt-cyan); cursor: pointer; }
+
+/* SECTION DIVIDER */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 10px;
+}
+.section-divider-line { flex: 1; height: 1px; background: var(--tt-border); }
+.section-divider-text { font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 2px; color: var(--tt-text3); white-space: nowrap; }
+
+/* LOADING INDICATOR */
+.loading-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--tt-dim);
+  border-top-color: var(--tt-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .sidebar { width: 180px; }
+  .top-tagline { display: none; }
+}
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .row { flex-direction: column; }
+}
+
+/* HEXAGON DECOS */
+.hex-grid { position: absolute; opacity: 0.03; pointer-events: none; font-size: 60px; line-height: 1; color: var(--tt-cyan); top: 0; right: 0; white-space: pre; letter-spacing: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ======================== LOGIN SCREEN ======================== -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-corner tl"></div>
+    <div class="login-corner tr"></div>
+    <div class="login-corner bl"></div>
+    <div class="login-corner br"></div>
+    <div class="login-header">
+      <div class="login-logo">TELETRAAN I</div>
+      <div class="login-sub">AUTOBOT COMMAND NETWORK — AUTH REQUIRED</div>
+    </div>
+    <div class="login-form">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:9px;color:var(--tt-text3);letter-spacing:2px;margin-bottom:8px;">IDENTITY VERIFICATION</div>
+        <div style="font-size:10px;color:var(--tt-amber);animation:blink 1s step-start infinite;">▶ AWAITING INPUT ◀</div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">USERNAME</label>
+        <input class="tt-input" type="text" id="login-user" placeholder="ENTER USERNAME" autocomplete="off">
+      </div>
+      <div class="field-group">
+        <label class="field-label">PASSWORD</label>
+        <input class="tt-input" type="password" id="login-pass" placeholder="ENTER PASSWORD">
+      </div>
+      <button class="tt-btn" onclick="doLogin()" style="margin-top:4px;">AUTHENTICATE</button>
+      <div class="login-error" id="login-error"></div>
+      <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--tt-border);font-size:9px;color:var(--tt-text3);text-align:center;letter-spacing:1px;line-height:1.8;">
+        DEFAULT: admin / autobot<br>
+        DEMO USERS: optimus / ratchet
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== MAIN APP ======================== -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div>
+      <div class="top-logo">TELE<span>TRAAN</span> I</div>
+      <div class="top-tagline">AUTOBOT COMMAND NETWORK</div>
+    </div>
+
+    <div class="nav-tabs" id="nav-tabs">
+      <button class="nav-tab active" onclick="switchView('systems')" data-view="systems">SYSTEMS</button>
+      <button class="nav-tab" onclick="switchView('network')" data-view="network">NETWORK</button>
+      <button class="nav-tab" onclick="switchView('docker')" data-view="docker">DOCKER</button>
+      <button class="nav-tab" onclick="switchView('storage')" data-view="storage">STORAGE</button>
+      <button class="nav-tab" onclick="switchView('shortcuts')" data-view="shortcuts">SHORTCUTS</button>
+      <button class="nav-tab admin-only" onclick="switchView('admin')" data-view="admin" style="display:none;">ADMIN</button>
+    </div>
+
+    <div class="top-spacer"></div>
+
+    <div id="alert-counter" style="display:none;">
+      <span class="alert-badge" id="alert-count">0 ALERTS</span>
+    </div>
+
+    <div class="top-clock" id="top-clock">00:00:00</div>
+
+    <div class="user-badge" onclick="toggleUserMenu()" id="user-badge" style="position:relative;">
+      <div>
+        <div class="user-badge-name" id="user-display-name">OPTIMUS</div>
+        <div class="user-badge-role" id="user-display-role">COMMANDER</div>
+      </div>
+      <span style="color:var(--tt-text3);font-size:10px;">▼</span>
+      <div class="user-menu-dropdown hidden" id="user-menu">
+        <div class="user-menu-item" onclick="showProfileModal()">⚙ PROFILE</div>
+        <div class="user-menu-item" onclick="switchView('shortcuts')">★ FAVORITES</div>
+        <div class="user-menu-item danger" onclick="doLogout()">⏻ DISCONNECT</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout">
+
+    <!-- SIDEBAR: MACHINE LIST -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">CONNECTED NODES</span>
+        <button class="icon-btn" onclick="showAddMachineModal()" title="Add machine">+</button>
+      </div>
+      <div id="machine-list"></div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- SYSTEMS VIEW -->
+      <div class="view active" id="view-systems">
+        <div id="machine-detail-header" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-family:'Orbitron',sans-serif;font-size:18px;font-weight:800;color:var(--tt-cyan);letter-spacing:3px;" id="detail-machine-name">SELECT A NODE</div>
+              <div style="font-size:10px;color:var(--tt-text3);letter-spacing:2px;margin-top:3px;" id="detail-machine-meta">—</div>
+            </div>
+            <div style="flex:1;"></div>
+            <button class="tt-btn sm" onclick="refreshMachineData()">↻ REFRESH</button>
+            <button class="tt-btn sm amber" onclick="showRenameMachineModal()">✎ RENAME</button>
+            <button class="tt-btn sm danger" onclick="removeMachine()">✕ REMOVE</button>
+          </div>
+        </div>
+
+        <!-- CPU -->
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">⬡ CENTRAL PROCESSING UNIT</span>
+            <span class="loading-spinner" id="cpu-spinner"></span>
+          </div>
+          <div class="tt-panel-body">
+            <div class="stat-grid" id="cpu-stats">
+              <div class="stat-card">
+                <div class="stat-label">LOAD AVG</div>
+                <div class="stat-value" id="cpu-load">—</div>
+                <div class="meter-wrap"><div class="meter-track"><div class="meter-fill" id="cpu-load-bar" style="width:0%"></div></div></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">TEMPERATURE</div>
+                <div class="stat-value" id="cpu-temp">—<span class="stat-unit">°C</span></div>
+                <div class="stat-sub" id="cpu-temp-sub">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">FREQUENCY</div>
+                <div class="stat-value" id="cpu-freq">—<span class="stat-unit">GHz</span></div>
+                <div class="stat-sub" id="cpu-model">—</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">CORES / THREADS</div>
+                <div class="stat-value" id="cpu-cores">—</div>
+                <div class="stat-sub" id="cpu-arch">—</div>
+              </div>
+            </div>
+            <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">THREAD UTILIZATION</div><div class="section-divider-line"></div></div>
+            <div class="thread-grid" id="thread-grid"></div>
+          </div>
+        </div>
+
+        <!-- GPU / iGPU -->
+        <div class="row" style="margin-bottom:16px;">
+          <div class="tt-panel">
+            <div class="tt-panel-header">
+              <span class="tt-panel-title">▣ GRAPHICS PROCESSOR</span>
+            </div>
+            <div class="tt-panel-body">
+              <div class="stat-grid">
+                <div class="stat-card">
+                  <div class="stat-label">TEMPERATURE</div>
+                  <div class="stat-value" id="gpu-temp">—<span class="stat-unit">°C</span></div>
+                  <div class="stat-sub" id="gpu-name">—</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">GPU LOAD</div>
+                  <div class="stat-value" id="gpu-load">—<span class="stat-unit">%</span></div>
+                  <div class="meter-wrap"><div class="meter-track"><div class="meter-fill" id="gpu-bar" style="width:0%"></div></div></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">VRAM USED</div>
+                  <div class="stat-value" id="gpu-vram">—<span class="stat-unit">MB</span></div>
+                  <div class="stat-sub" id="gpu-vram-total">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NPU -->
+          <div class="tt-panel">
+            <div class="tt-panel-header">
+              <span class="tt-panel-title">◈ NEURAL PROCESSING UNIT</span>
+            </div>
+            <div class="tt-panel-body">
+              <div class="stat-grid">
+                <div class="stat-card">
+                  <div class="stat-label">STATUS</div>
+                  <div class="stat-value" id="npu-status" style="font-size:14px;">N/A</div>
+                  <div class="stat-sub" id="npu-name">Not detected</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">UTILIZATION</div>
+                  <div class="stat-value" id="npu-load">N/A</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">TOPS</div>
+                  <div class="stat-value" id="npu-tops">N/A</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RAM -->
+        <div class="row" style="margin-bottom:16px;">
+          <div class="tt-panel">
+            <div class="tt-panel-header">
+              <span class="tt-panel-title">▦ MEMORY BANKS</span>
+            </div>
+            <div class="tt-panel-body">
+              <div class="stat-grid">
+                <div class="stat-card">
+                  <div class="stat-label">USED / TOTAL</div>
+                  <div class="stat-value" id="ram-used">—</div>
+                  <div class="stat-sub" id="ram-total">—</div>
+                  <div class="meter-wrap"><div class="meter-track"><div class="meter-fill" id="ram-bar" style="width:0%"></div></div></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">ZFS ARC</div>
+                  <div class="stat-value" id="ram-arc">—<span class="stat-unit">GiB</span></div>
+                  <div class="stat-sub" id="ram-arc-pct">— of total</div>
+                  <div class="meter-wrap"><div class="meter-track"><div class="meter-fill" id="ram-arc-bar" style="width:0%;background:var(--tt-amber)"></div></div></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">PAGE CACHE</div>
+                  <div class="stat-value" id="ram-cache">—<span class="stat-unit">GiB</span></div>
+                  <div class="stat-sub">Reclaimable</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">FREE</div>
+                  <div class="stat-value ok" id="ram-free">—<span class="stat-unit">GiB</span></div>
+                  <div class="stat-sub" id="ram-free-pct">— available</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">SWAP USED</div>
+                  <div class="stat-value" id="swap-used">—<span class="stat-unit">GiB</span></div>
+                  <div class="meter-wrap"><div class="meter-track"><div class="meter-fill" id="swap-bar" style="width:0%"></div></div></div>
+                </div>
+              </div>
+              <!-- Stacked memory breakdown bar -->
+              <div style="margin-top:14px;">
+                <div style="font-size:9px;letter-spacing:2px;color:var(--tt-text3);margin-bottom:6px;">MEMORY MAP</div>
+                <div style="height:12px;display:flex;width:100%;overflow:hidden;border:1px solid var(--tt-border);" id="ram-map-bar">
+                  <div id="ram-map-used"  style="background:var(--tt-cyan);height:100%;transition:width 1s;" title="Used"></div>
+                  <div id="ram-map-arc"   style="background:var(--tt-amber);height:100%;transition:width 1s;" title="ZFS ARC"></div>
+                  <div id="ram-map-cache" style="background:#1a5a7a;height:100%;transition:width 1s;" title="Cache"></div>
+                  <div id="ram-map-free"  style="background:var(--tt-bg2);height:100%;transition:width 1s;flex:1;" title="Free"></div>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:5px;font-size:9px;color:var(--tt-text3);">
+                  <span><span style="color:var(--tt-cyan);">■</span> USED</span>
+                  <span><span style="color:var(--tt-amber);">■</span> ZFS ARC</span>
+                  <span style="color:#1a8aaa;">■ CACHE</span>
+                  <span>□ FREE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DRIVES -->
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">◫ STORAGE DRIVES</span>
+          </div>
+          <div class="tt-panel-body" id="drives-panel">
+            <div style="color:var(--tt-text3);font-size:11px;text-align:center;padding:20px;">SELECT A NODE TO VIEW DRIVE DATA</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NETWORK VIEW -->
+      <div class="view" id="view-network">
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">⊕ NETWORK TOPOLOGY — CONNECTION STATUS</span>
+            <button class="tt-btn sm" onclick="pingAllMachines()">▶ PING ALL</button>
+          </div>
+          <div class="tt-panel-body">
+            <div class="network-grid" id="network-grid"></div>
+          </div>
+        </div>
+        <div class="tt-panel">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">⊗ NETWORK THROUGHPUT</span>
+          </div>
+          <div class="tt-panel-body">
+            <div class="stat-grid" style="margin-bottom:16px;">
+              <div class="stat-card">
+                <div class="stat-label">INBOUND</div>
+                <div class="stat-value ok" id="net-in">—<span class="stat-unit">Mb/s</span></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">OUTBOUND</div>
+                <div class="stat-value" id="net-out">—<span class="stat-unit">Mb/s</span></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">TOTAL NODES</div>
+                <div class="stat-value" id="net-nodes">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">OFFLINE NODES</div>
+                <div class="stat-value crit" id="net-offline">0</div>
+              </div>
+            </div>
+            <canvas id="net-chart" height="80" style="width:100%;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCKER VIEW -->
+      <div class="view" id="view-docker">
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">◻ CONTAINER REGISTRY</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="form-select" style="width:auto;font-size:10px;padding:4px 8px;" id="docker-machine-filter" onchange="filterDockerByMachine()">
+                <option value="all">ALL NODES</option>
+              </select>
+              <button class="tt-btn sm" onclick="showAddDockerModal()">+ ADD</button>
+            </div>
+          </div>
+          <div class="tt-panel-body">
+            <table class="docker-table" id="docker-table">
+              <thead>
+                <tr>
+                  <th>CONTAINER</th>
+                  <th>IMAGE</th>
+                  <th>NODE</th>
+                  <th>STATUS</th>
+                  <th>PORT</th>
+                  <th>SHORTCUT</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="docker-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- STORAGE VIEW -->
+      <div class="view" id="view-storage">
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">◫ STORAGE POOLS & NAS</span>
+            <button class="tt-btn sm" onclick="showAddPoolModal()">+ ADD POOL</button>
+          </div>
+          <div class="tt-panel-body">
+            <div class="pool-grid" id="pool-grid">
+              <div style="color:var(--tt-text3);font-size:11px;padding:20px;grid-column:1/-1;">No storage pools configured. Add a TrueNAS, Ceph, or local pool.</div>
+            </div>
+          </div>
+        </div>
+        <div class="tt-panel">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">⊙ PER-NODE DRIVE HEALTH</span>
+          </div>
+          <div class="tt-panel-body" id="all-drives-panel">
+            <div style="color:var(--tt-text3);font-size:11px;text-align:center;padding:20px;">Configure nodes to see drive health across all systems.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHORTCUTS VIEW -->
+      <div class="view" id="view-shortcuts">
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">★ DOCKER APP SHORTCUTS</span>
+          </div>
+          <div class="tt-panel-body">
+            <div class="shortcuts-grid" id="docker-shortcuts"></div>
+          </div>
+        </div>
+        <div class="tt-panel">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">◈ PERSONAL FAVORITES</span>
+            <button class="tt-btn sm" onclick="showAddShortcutModal()">+ ADD SITE</button>
+          </div>
+          <div class="tt-panel-body">
+            <div class="shortcuts-grid" id="user-shortcuts"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN VIEW -->
+      <div class="view" id="view-admin">
+        <div class="row" style="margin-bottom:16px;">
+          <!-- USER MANAGEMENT -->
+          <div class="tt-panel">
+            <div class="tt-panel-header">
+              <span class="tt-panel-title">◈ USER MANAGEMENT</span>
+              <button class="tt-btn sm" onclick="showAddUserModal()">+ ADD USER</button>
+            </div>
+            <div class="tt-panel-body">
+              <table class="user-list-table">
+                <thead>
+                  <tr>
+                    <th>USERNAME</th>
+                    <th>ROLE</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-user-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERMISSION MATRIX -->
+        <div class="tt-panel" style="margin-bottom:16px;">
+          <div class="tt-panel-header">
+            <span class="tt-panel-title">◫ PERMISSIONS MATRIX</span>
+          </div>
+          <div class="tt-panel-body">
+            <div class="form-row" style="margin-bottom:16px;">
+              <div class="form-group" style="max-width:200px;">
+                <label class="form-label">SELECT USER</label>
+                <select class="form-select" id="perm-user-select" onchange="loadPermissions()"></select>
+              </div>
+            </div>
+            <div id="perm-matrix"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main-layout -->
+</div><!-- /app -->
+
+<!-- ALERT CONTAINER -->
+<div class="alert-container" id="alert-container"></div>
+
+<!-- =================== MODALS =================== -->
+
+<!-- ADD MACHINE MODAL -->
+<div class="modal-overlay hidden" id="modal-add-machine">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">ADD NODE TO NETWORK</span>
+      <button class="modal-close" onclick="closeModal('modal-add-machine')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">HOSTNAME / IP ADDRESS</label>
+        <input class="tt-input" type="text" id="new-machine-ip" placeholder="192.168.1.100 or hostname">
+      </div>
+      <div class="field-group">
+        <label class="field-label">DISPLAY NAME (leave blank to auto-detect)</label>
+        <input class="tt-input" type="text" id="new-machine-name" placeholder="Auto-detect from hostname">
+      </div>
+      <div class="field-group">
+        <label class="field-label">MACHINE TYPE</label>
+        <select class="form-select" id="new-machine-type">
+          <option value="server">Server / Desktop</option>
+          <option value="laptop">Laptop</option>
+          <option value="nas">NAS</option>
+          <option value="vm">Virtual Machine</option>
+          <option value="container">Container Host</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">API PORT (homelab agent, default 8080)</label>
+        <input class="tt-input" type="number" id="new-machine-port" placeholder="7071" value="7071">
+      </div>
+      <div class="field-group">
+        <label class="field-label">SSH PORT (for auto-detection)</label>
+        <input class="tt-input" type="number" id="new-machine-ssh" placeholder="22" value="22">
+      </div>
+      <div style="padding:12px;background:rgba(0,212,255,0.05);border:1px solid var(--tt-border);font-size:10px;color:var(--tt-text2);line-height:1.7;margin-top:6px;">
+        ⚠ For live data, deploy the <strong>Teletraan Agent</strong> on each node.<br>
+        Without an agent, dashboard uses simulated data for demonstration.<br>
+        <span style="color:var(--tt-amber);">curl -sSL https://your-server/agent.sh | bash</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tt-btn sm" onclick="closeModal('modal-add-machine')">CANCEL</button>
+      <button class="tt-btn sm green" onclick="addMachine()">CONNECT NODE</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENAME MACHINE MODAL -->
+<div class="modal-overlay hidden" id="modal-rename-machine">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">RENAME NODE</span>
+      <button class="modal-close" onclick="closeModal('modal-rename-machine')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">NEW DISPLAY NAME</label>
+        <input class="tt-input" type="text" id="rename-machine-input" placeholder="Node name">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tt-btn sm" onclick="closeModal('modal-rename-machine')">CANCEL</button>
+      <button class="tt-btn sm amber" onclick="renameMachine()">APPLY</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SHORTCUT MODAL -->
+<div class="modal-overlay hidden" id="modal-add-shortcut">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">ADD FAVORITE SITE</span>
+      <button class="modal-close" onclick="closeModal('modal-add-shortcut')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">SITE NAME</label>
+        <input class="tt-input" type="text" id="new-shortcut-name" placeholder="GitHub">
+      </div>
+      <div class="field-group">
+        <label class="field-label">URL</label>
+        <input class="tt-input" type="url" id="new-shortcut-url" placeholder="https://github.com">
+      </div>
+      <div class="field-group">
+        <label class="field-label">ICON (emoji)</label>
+        <input class="tt-input" type="text" id="new-shortcut-icon" placeholder="🌐" maxlength="4">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tt-btn sm" onclick="closeModal('modal-add-shortcut')">CANCEL</button>
+      <button class="tt-btn sm green" onclick="addShortcut()">ADD</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay hidden" id="modal-add-user">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">CREATE USER ACCOUNT</span>
+      <button class="modal-close" onclick="closeModal('modal-add-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">USERNAME</label>
+        <input class="tt-input" type="text" id="new-user-name" placeholder="username">
+      </div>
+      <div class="field-group">
+        <label class="field-label">PASSWORD</label>
+        <input class="tt-input" type="password" id="new-user-pass" placeholder="password">
+      </div>
+      <div class="field-group">
+        <label class="field-label">DISPLAY NAME</label>
+        <input class="tt-input" type="text" id="new-user-display" placeholder="Display Name">
+      </div>
+      <div class="field-group">
+        <label class="field-label">ROLE</label>
+        <select class="form-select" id="new-user-role">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tt-btn sm" onclick="closeModal('modal-add-user')">CANCEL</button>
+      <button class="tt-btn sm green" onclick="addUser()">CREATE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DOCKER MODAL -->
+<div class="modal-overlay hidden" id="modal-add-docker">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">REGISTER DOCKER CONTAINER</span>
+      <button class="modal-close" onclick="closeModal('modal-add-docker')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">CONTAINER NAME</label>
+        <input class="tt-input" type="text" id="new-docker-name" placeholder="my-app">
+      </div>
+      <div class="field-group">
+        <label class="field-label">IMAGE</label>
+        <input class="tt-input" type="text" id="new-docker-image" placeholder="nginx:latest">
+      </div>
+      <div class="field-group">
+        <label class="field-label">HOST NODE</label>
+        <select class="form-select" id="new-docker-machine"></select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">WEB UI PORT (optional, for shortcut)</label>
+        <input class="tt-input" type="number" id="new-docker-port" placeholder="8080">
+      </div>
+      <div class="field-group">
+        <label class="field-label">ICON (emoji)</label>
+        <input class="tt-input" type="text" id="new-docker-icon" placeholder="🐳" maxlength="4">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tt-btn sm" onclick="closeModal('modal-add-docker')">CANCEL</button>
+      <button class="tt-btn sm green" onclick="addDocker()">REGISTER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD POOL MODAL -->
+<div class="modal-overlay hidden" id="modal-add-pool">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">ADD STORAGE POOL</span>
+      <button class="modal-close" onclick="closeModal('modal-add-pool')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">POOL NAME</label>
+        <input class="tt-input" type="text" id="new-pool-name" placeholder="tank0">
+      </div>
+      <div class="field-group">
+        <label class="field-label">POOL TYPE</label>
+        <select class="form-select" id="new-pool-type">
+          <option value="zfs">ZFS (TrueNAS / native)</option>
+          <option value="ceph">Ceph RBD/CephFS</option>
+          <option value="btrfs">Btrfs</option>
+          <option value="lvm">LVM</option>
+          <option value="ext4">EXT4</option>
+          <option value="unraid">Unraid Array</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">HOST NODE</label>
+        <select class="form-select" id="new-pool-machine"></select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">API ENDPOINT (TrueNAS/Ceph, optional)</label>
+        <input class="tt-input" type="text" id="new-pool-api" placeholder="http://truenas.local/api/v2.0">
+      </div>
+      <div class="field-group">
+        <label class="field-label">API KEY / TOKEN</label>
+        <input class="tt-input" type="password" id="new-pool-key" placeholder="API key for authentication">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="tt-btn sm" onclick="closeModal('modal-add-pool')">CANCEL</button>
+      <button class="tt-btn sm green" onclick="addPool()">ADD POOL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// TELETRAAN I — COMPLETE APPLICATION LOGIC
+// ================================================================
+
+// ——— STATE ———
+let state = {
+  currentUser: null,
+  selectedMachineId: null,
+  alerts: [],
+  view: 'systems',
+  updateIntervals: [],
+  networkHistory: [],
+};
+
+// ——— PERSISTENT DATA (localStorage) ———
+const DB = {
+  get(k, def) {
+    try { const v = localStorage.getItem('tt1_' + k); return v ? JSON.parse(v) : def; } catch(e) { return def; }
+  },
+  set(k, v) { try { localStorage.setItem('tt1_' + k, JSON.stringify(v)); } catch(e) {} },
+};
+
+// ——— DEFAULT DATA ———
+function initData() {
+  if (!DB.get('users', null)) {
+    DB.set('users', [
+      { id: 'u1', username: 'admin', password: 'autobot', display: 'Admin', role: 'admin', active: true, shortcuts: [
+        { id: 's1', name: 'GitHub', url: 'https://github.com', icon: '🐙' },
+        { id: 's2', name: 'Google', url: 'https://google.com', icon: '🔍' },
+      ], dockerPerms: 'all', machinePerms: 'all' },
+      { id: 'u2', username: 'optimus', password: 'ratchet', display: 'Optimus Prime', role: 'user', active: true, shortcuts: [
+        { id: 's3', name: 'Plex', url: 'http://plex.local:32400', icon: '🎬' },
+      ], dockerPerms: [], machinePerms: 'all' },
+      { id: 'u3', username: 'ratchet', password: 'ratchet', display: 'Ratchet', role: 'user', active: true, shortcuts: [], dockerPerms: [], machinePerms: 'all' },
+    ]);
+  }
+  if (!DB.get('machines', null)) {
+    DB.set('machines', []);  // start empty — add real nodes via + in sidebar
+  }
+  if (!DB.get('docker', null)) {
+    DB.set('docker', []);  // start empty — add containers via Docker tab
+  }
+  if (!DB.get('pools', null)) {
+    DB.set('pools', []);  // start empty — add real pools via + ADD POOL or agent auto-discovery
+  }
+}
+
+// ——— SIMULATED MACHINE DATA ———
+function generateMachineData(machine) {
+  const seed = machine.id.charCodeAt(1) || 1;
+  const noise = () => (Math.sin(Date.now() / 3000 + seed) * 0.5 + 0.5);
+  const noiseF = (base, range) => +(base + noise() * range).toFixed(1);
+
+  const cpuLoad = noiseF(20, 60);
+  const cpuTemp = noiseF(35, 45);
+  const gpuLoad = noiseF(5, 70);
+  const ramUsed = noiseF(2, 12);
+  const ramTotal = machine.type === 'server' ? 64 : (machine.type === 'nas' ? 32 : 16);
+  const nThreads = machine.type === 'server' ? 16 : (machine.type === 'nas' ? 8 : 4);
+  const threads = Array.from({length: nThreads}, (_, i) => noiseF(10, 80));
+
+  const types = { server: 'ENTERPRISE SERVER', nas: 'NAS APPLIANCE', laptop: 'MOBILE WORKSTATION', vm: 'VIRTUAL MACHINE', container: 'CONTAINER HOST', other: 'NETWORK NODE' };
+
+  const cpuModels = { server: 'AMD EPYC 7702P', nas: 'Intel Xeon E-2278G', laptop: 'AMD Ryzen 7 7700U', other: 'ARM Cortex-A72' };
+
+  return {
+    meta: types[machine.type] || 'NETWORK NODE',
+    cpu: {
+      load: cpuLoad,
+      temp: cpuTemp,
+      model: cpuModels[machine.type] || 'Unknown CPU',
+      freq: noiseF(2.4, 1.8),
+      cores: nThreads / 2,
+      threads: nThreads,
+      arch: machine.type === 'other' ? 'ARM64' : 'x86_64',
+      threadLoads: threads,
+    },
+    gpu: machine.type === 'server' ? {
+      name: 'NVIDIA RTX 4080',
+      temp: noiseF(42, 40),
+      load: gpuLoad,
+      vram: Math.round(gpuLoad * 120),
+      vramTotal: 16384,
+      isIGPU: false,
+    } : {
+      name: machine.type === 'laptop' ? 'AMD Radeon 780M (iGPU)' : 'Intel UHD 730 (iGPU)',
+      temp: noiseF(38, 25),
+      load: noiseF(5, 30),
+      vram: Math.round(noiseF(5, 30) * 50),
+      vramTotal: 2048,
+      isIGPU: true,
+    },
+    npu: machine.type === 'laptop' ? {
+      present: true,
+      name: 'AMD XDNA NPU',
+      load: noiseF(0, 40),
+      tops: 38,
+    } : { present: false },
+    ram: {
+      used: ramUsed,
+      total: ramTotal,
+      swap: noiseF(0.1, 1.5),
+      swapTotal: 8,
+      cache: noiseF(1, 4),
+    },
+    drives: machine.type === 'nas' ? [
+      { name: '/dev/sda', model: 'WD Red Plus 8TB', temp: noiseF(28, 12), used: noiseF(40, 50), total: 8192, health: 'OK', rpm: 5400 },
+      { name: '/dev/sdb', model: 'WD Red Plus 8TB', temp: noiseF(29, 11), used: noiseF(40, 50), total: 8192, health: 'OK', rpm: 5400 },
+      { name: '/dev/sdc', model: 'Seagate IronWolf 4TB', temp: noiseF(32, 15), used: noiseF(20, 30), total: 4096, health: 'OK', rpm: 7200 },
+      { name: '/dev/nvme0', model: 'Samsung 990 Pro 2TB', temp: noiseF(38, 20), used: noiseF(30, 40), total: 2048, health: 'OK', rpm: 0 },
+    ] : machine.type === 'server' ? [
+      { name: '/dev/nvme0', model: 'Samsung 990 Pro 1TB', temp: noiseF(40, 15), used: noiseF(50, 40), total: 1024, health: 'OK', rpm: 0 },
+      { name: '/dev/sda', model: 'WD Black 4TB', temp: noiseF(35, 10), used: noiseF(60, 30), total: 4096, health: 'OK', rpm: 7200 },
+    ] : [
+      { name: '/dev/nvme0', model: 'SK Hynix P41 512GB', temp: noiseF(38, 20), used: noiseF(40, 45), total: 512, health: 'OK', rpm: 0 },
+    ],
+    network: {
+      latency: machine.online ? noiseF(0.5, 5) : null,
+      rxMbs: noiseF(1, 50),
+      txMbs: noiseF(0.5, 20),
+    },
+  };
+}
+
+// ——— AUTH ———
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value;
+  const users = DB.get('users', []);
+  const user = users.find(x => x.username.toLowerCase() === u && x.password === p && x.active);
+  if (!user) {
+    document.getElementById('login-error').textContent = '⚠ AUTHENTICATION FAILED — CHECK CREDENTIALS';
+    document.getElementById('login-pass').value = '';
+    return;
+  }
+  state.currentUser = user;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('user-display-name').textContent = user.display.toUpperCase();
+  document.getElementById('user-display-role').textContent = user.role.toUpperCase();
+  if (user.role === 'admin') {
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+  }
+  initDashboard();
+  showToast('info', 'AUTHENTICATION SUCCESSFUL', `Welcome, ${user.display}. Autobot network online.`);
+}
+
+function doLogout() {
+  state.currentUser = null;
+  state.updateIntervals.forEach(clearInterval);
+  state.updateIntervals = [];
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// ——— CLOCK ———
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('top-clock').textContent =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ——— VIEW SWITCHING ———
+function switchView(v) {
+  state.view = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelector(`[data-view="${v}"]`)?.classList.add('active');
+  if (v === 'admin') renderAdminPanel();
+  if (v === 'docker') renderDocker();
+  if (v === 'shortcuts') renderShortcuts();
+  if (v === 'storage') renderStorage();
+  if (v === 'network') renderNetwork();
+}
+
+// ——— INIT ———
+function initDashboard() {
+  initData();
+  renderMachineList();
+  renderNetwork();
+  renderDocker();
+  renderShortcuts();
+  renderStorage();
+
+  // Auto-select first machine
+  const machines = DB.get('machines', []);
+  if (machines.length > 0) selectMachine(machines[0].id);
+
+  // Start live updates
+  const iv1 = setInterval(() => {
+    if (state.selectedMachineId) updateSystemStats();
+  }, 3000);
+  const iv2 = setInterval(() => {
+    checkNetworkStatus();
+    updateNetworkChart();
+  }, 5000);
+  const iv3 = setInterval(() => {
+    updateDockerStats();
+  }, 10000);
+  state.updateIntervals.push(iv1, iv2, iv3);
+  updateNetworkChart();
+}
+
+// ——— MACHINE LIST ———
+function renderMachineList() {
+  const machines = DB.get('machines', []);
+  const container = document.getElementById('machine-list');
+  container.innerHTML = '';
+  machines.forEach(m => {
+    const div = document.createElement('div');
+    div.className = `machine-item${m.id === state.selectedMachineId ? ' active' : ''}${!m.online ? ' offline' : ''}`;
+    div.setAttribute('data-id', m.id);
+    div.onclick = () => selectMachine(m.id);
+    const typeIcons = { server: '⬡', nas: '◫', laptop: '⬟', vm: '◻', container: '◈', other: '○' };
+    const ago = m.online ? '' : ` (${Math.round((Date.now() - m.lastSeen)/60000)}m ago)`;
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;">
+        <span class="machine-status-dot ${m.online ? 'online' : 'offline'}"></span>
+        <span class="machine-name">${m.name}</span>
+      </div>
+      <div class="machine-type">${typeIcons[m.type] || '○'} ${m.type.toUpperCase()}${ago}</div>
+      <div class="machine-ip">${m.ip}</div>
+      <div class="machine-actions">
+        <button class="icon-btn" onclick="event.stopPropagation();showRenameMachineModalFor('${m.id}')" title="Rename">✎</button>
+        <button class="icon-btn" onclick="event.stopPropagation();removeMachineById('${m.id}')" title="Remove" style="color:var(--tt-red)">✕</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  // Update docker machine filter
+  const sel = document.getElementById('docker-machine-filter');
+  if (sel) {
+    sel.innerHTML = '<option value="all">ALL NODES</option>';
+    machines.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id; opt.textContent = m.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  // Update docker machine selects in modals
+  ['new-docker-machine', 'new-pool-machine'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = '';
+      machines.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id; opt.textContent = m.name;
+        el.appendChild(opt);
+      });
+    }
+  });
+}
+
+function selectMachine(id) {
+  state.selectedMachineId = id;
+  renderMachineList();
+  updateSystemStats();
+  document.querySelectorAll('.nav-tab[data-view="systems"]')[0]?.click();
+  if (state.view !== 'systems') switchView('systems');
+}
+
+function updateSystemStats() {
+  const machines = DB.get('machines', []);
+  const m = machines.find(x => x.id === state.selectedMachineId);
+  if (!m) return;
+
+  // Simulate some machines going offline randomly
+  if (Math.random() < 0.02) {
+    m.online = !m.online;
+    if (!m.online) {
+      m.lastSeen = Date.now();
+      showToast('danger', 'NODE OFFLINE', `${m.name} (${m.ip}) has lost connection!`);
+      incrementAlertCount();
+    } else {
+      showToast('ok', 'NODE RECONNECTED', `${m.name} (${m.ip}) is back online.`);
+    }
+    DB.set('machines', machines);
+    renderMachineList();
+    renderNetwork();
+  }
+
+  const data = generateMachineData(m);
+
+  document.getElementById('detail-machine-name').textContent = m.name;
+  document.getElementById('detail-machine-meta').textContent = `${data.meta} — ${m.ip} — ${m.online ? '● ONLINE' : '✕ OFFLINE'}`;
+
+  // CPU
+  const cl = data.cpu.load;
+  const clClass = cl > 80 ? 'crit' : cl > 60 ? 'warn' : '';
+  document.getElementById('cpu-load').className = `stat-value ${clClass}`;
+  document.getElementById('cpu-load').innerHTML = `${cl.toFixed(0)}<span class="stat-unit">%</span>`;
+  setBar('cpu-load-bar', cl);
+  const ct = data.cpu.temp;
+  document.getElementById('cpu-temp').className = `stat-value ${ct > 85 ? 'crit' : ct > 70 ? 'warn' : 'ok'}`;
+  document.getElementById('cpu-temp').innerHTML = `${ct.toFixed(0)}<span class="stat-unit">°C</span>`;
+  document.getElementById('cpu-temp-sub').textContent = ct > 85 ? '⚠ THERMAL THROTTLE RISK' : ct > 70 ? 'ELEVATED' : 'NOMINAL';
+  document.getElementById('cpu-freq').innerHTML = `${data.cpu.freq.toFixed(1)}<span class="stat-unit">GHz</span>`;
+  document.getElementById('cpu-model').textContent = data.cpu.model;
+  document.getElementById('cpu-cores').innerHTML = `${data.cpu.cores}<span class="stat-unit">C</span> / ${data.cpu.threads}<span class="stat-unit">T</span>`;
+  document.getElementById('cpu-arch').textContent = data.cpu.arch;
+
+  // Threads
+  const tg = document.getElementById('thread-grid');
+  if (tg.children.length !== data.cpu.threadLoads.length) {
+    tg.innerHTML = '';
+    data.cpu.threadLoads.forEach((_, i) => {
+      tg.innerHTML += `
+        <div class="thread-bar-wrap">
+          <div class="thread-bar-container">
+            <div class="thread-bar" id="tb-${i}" style="height:0%"></div>
+          </div>
+          <span class="thread-num">T${i+1}</span>
+        </div>`;
+    });
+  }
+  data.cpu.threadLoads.forEach((v, i) => {
+    const bar = document.getElementById(`tb-${i}`);
+    if (bar) {
+      bar.style.height = v + '%';
+      bar.className = `thread-bar${v > 80 ? ' crit' : v > 60 ? ' warn' : ''}`;
+    }
+  });
+
+  // GPU
+  const g = data.gpu;
+  document.getElementById('gpu-name').textContent = (g.isIGPU ? '○ iGPU: ' : '● dGPU: ') + g.name;
+  document.getElementById('gpu-temp').innerHTML = `${g.temp.toFixed(0)}<span class="stat-unit">°C</span>`;
+  document.getElementById('gpu-temp').className = `stat-value ${g.temp > 80 ? 'crit' : g.temp > 65 ? 'warn' : 'ok'}`;
+  document.getElementById('gpu-load').innerHTML = `${g.load.toFixed(0)}<span class="stat-unit">%</span>`;
+  setBar('gpu-bar', g.load);
+  document.getElementById('gpu-vram').innerHTML = `${g.vram}<span class="stat-unit">MB</span>`;
+  document.getElementById('gpu-vram-total').textContent = `/ ${g.vramTotal} MB VRAM`;
+
+  // NPU
+  const n = data.npu;
+  if (n.present) {
+    document.getElementById('npu-status').textContent = 'DETECTED';
+    document.getElementById('npu-status').className = 'stat-value ok';
+    document.getElementById('npu-name').textContent = n.name;
+    document.getElementById('npu-load').innerHTML = `${n.load.toFixed(0)}<span class="stat-unit">%</span>`;
+    document.getElementById('npu-tops').innerHTML = `${n.tops}<span class="stat-unit">TOPs</span>`;
+  } else {
+    document.getElementById('npu-status').textContent = 'N/A';
+    document.getElementById('npu-status').className = 'stat-value';
+    document.getElementById('npu-name').textContent = 'Not detected in this node';
+    document.getElementById('npu-load').textContent = 'N/A';
+    document.getElementById('npu-tops').textContent = 'N/A';
+  }
+
+  // RAM
+  const r = data.ram;
+  const ramPct = (r.used / r.total * 100);
+  document.getElementById('ram-used').innerHTML = `${r.used.toFixed(1)}<span class="stat-unit">GB</span>`;
+  document.getElementById('ram-used').className = `stat-value ${ramPct > 90 ? 'crit' : ramPct > 75 ? 'warn' : ''}`;
+  document.getElementById('ram-total').textContent = `/ ${r.total} GB TOTAL`;
+  setBar('ram-bar', ramPct);
+  document.getElementById('swap-used').innerHTML = `${r.swap.toFixed(1)}<span class="stat-unit">GB</span>`;
+  setBar('swap-bar', r.swap / r.swapTotal * 100);
+  document.getElementById('ram-cache').innerHTML = `${r.cache.toFixed(1)}<span class="stat-unit">GB</span>`;
+
+  // Drives
+  renderDrives(data.drives, 'drives-panel');
+  document.getElementById('cpu-spinner').style.display = 'none';
+}
+
+function setBar(id, pct) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.width = Math.min(100, pct) + '%';
+  el.className = `meter-fill${pct > 85 ? ' crit' : pct > 70 ? ' warn' : ''}`;
+}
+
+function renderDrives(drives, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!drives || drives.length === 0) {
+    container.innerHTML = '<div style="color:var(--tt-text3);font-size:11px;padding:20px;text-align:center;">No drives detected</div>';
+    return;
+  }
+  container.innerHTML = drives.map(d => {
+    const pct = (d.used / d.total * 100);
+    const tempClass = d.temp > 50 ? 'crit' : d.temp > 40 ? 'warn' : 'ok';
+    const isNVMe = d.name.includes('nvme');
+    return `
+    <div style="display:flex;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(13,74,110,0.3);flex-wrap:wrap;">
+      <div style="min-width:120px;">
+        <div style="font-size:12px;color:var(--tt-text);">${isNVMe ? '▸ NVMe' : '◼ HDD'} ${d.name.split('/').pop().toUpperCase()}</div>
+        <div style="font-size:9px;color:var(--tt-text3);margin-top:2px;">${d.model}</div>
+      </div>
+      <div style="flex:1;min-width:150px;">
+        <div class="meter-label-row"><span>${(d.used/1024).toFixed(1)} TB used</span><span>${(d.total/1024).toFixed(1)} TB</span></div>
+        <div class="meter-track"><div class="meter-fill${pct>85?' crit':pct>70?' warn':''}" style="width:${pct.toFixed(0)}%"></div></div>
+      </div>
+      <div style="text-align:center;min-width:60px;">
+        <div class="stat-value ${tempClass}" style="font-size:16px;">${d.temp.toFixed(0)}°</div>
+        <div style="font-size:9px;color:var(--tt-text3);">TEMP</div>
+      </div>
+      <div style="min-width:60px;">
+        <div style="font-size:9px;color:${d.health==='OK'?'var(--tt-green)':'var(--tt-red)'};">${d.health}</div>
+        <div style="font-size:9px;color:var(--tt-text3);">${d.rpm ? d.rpm+'RPM' : 'FLASH'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ——— NETWORK ———
+function renderNetwork() {
+  const machines = DB.get('machines', []);
+  const ng = document.getElementById('network-grid');
+  if (!ng) return;
+  ng.innerHTML = '';
+  let offline = 0;
+  machines.forEach(m => {
+    if (!m.online) offline++;
+    const data = generateMachineData(m);
+    const lat = m.online ? data.network.latency : null;
+    const card = document.createElement('div');
+    card.className = `network-card${!m.online ? ' offline' : ''}`;
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span class="machine-status-dot ${m.online ? 'online' : 'offline'}"></span>
+        <span class="network-name">${m.name}</span>
+      </div>
+      <div class="network-ip">${m.ip}</div>
+      <div class="network-latency ${m.online ? (lat > 5 ? 'warn' : 'ok') : 'crit'}" style="color:${m.online ? (lat > 5 ? 'var(--tt-amber)' : 'var(--tt-green)') : 'var(--tt-red)'}">
+        ${m.online ? lat.toFixed(1) + 'ms' : 'OFFLINE'}
+      </div>
+      ${m.online ? `<div style="font-size:9px;color:var(--tt-text3);margin-top:4px;">
+        ↓ ${data.network.rxMbs.toFixed(1)} Mb/s &nbsp; ↑ ${data.network.txMbs.toFixed(1)} Mb/s
+      </div>` : `<div style="font-size:9px;color:var(--tt-red);margin-top:4px;">⚠ CONNECTION LOST — CHECK ETHERNET</div>`}
+    `;
+    ng.appendChild(card);
+  });
+  document.getElementById('net-nodes').textContent = machines.length;
+  document.getElementById('net-offline').textContent = offline;
+  if (offline > 0) document.getElementById('net-offline').className = 'stat-value crit';
+  else document.getElementById('net-offline').className = 'stat-value ok';
+
+  const allData = machines.map(m => generateMachineData(m));
+  const totalRx = allData.reduce((s, d) => s + d.network.rxMbs, 0);
+  const totalTx = allData.reduce((s, d) => s + d.network.txMbs, 0);
+  document.getElementById('net-in').innerHTML = `${totalRx.toFixed(1)}<span class="stat-unit">Mb/s</span>`;
+  document.getElementById('net-out').innerHTML = `${totalTx.toFixed(1)}<span class="stat-unit">Mb/s</span>`;
+}
+
+function checkNetworkStatus() {
+  const machines = DB.get('machines', []);
+  machines.forEach(m => {
+    const wasOnline = m.online;
+    // Simulate occasional dropouts (Bumblebee-Laptop more likely)
+    const dropChance = m.type === 'laptop' ? 0.05 : 0.01;
+    if (m.online && Math.random() < dropChance) {
+      m.online = false;
+      m.lastSeen = Date.now();
+      showToast('danger', 'NODE OFFLINE', `⚠ ${m.name} (${m.ip}) lost Ethernet connection!`);
+      incrementAlertCount();
+    } else if (!m.online && Math.random() < 0.3) {
+      m.online = true;
+      showToast('ok', 'NODE RECONNECTED', `${m.name} is back online.`);
+    }
+  });
+  DB.set('machines', machines);
+  renderMachineList();
+  if (state.view === 'network') renderNetwork();
+}
+
+let netChartData = { rx: [], tx: [] };
+function updateNetworkChart() {
+  const machines = DB.get('machines', []);
+  const allData = machines.map(m => generateMachineData(m));
+  const totalRx = allData.reduce((s, d) => s + d.network.rxMbs, 0);
+  const totalTx = allData.reduce((s, d) => s + d.network.txMbs, 0);
+  netChartData.rx.push(totalRx);
+  netChartData.tx.push(totalTx);
+  if (netChartData.rx.length > 40) { netChartData.rx.shift(); netChartData.tx.shift(); }
+  drawNetChart();
+}
+
+function drawNetChart() {
+  const canvas = document.getElementById('net-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 600;
+  const H = 80;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+  const max = Math.max(...netChartData.rx, ...netChartData.tx, 1);
+  function drawLine(data, color) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    data.forEach((v, i) => {
+      const x = (i / (data.length - 1)) * W;
+      const y = H - (v / max) * H * 0.9;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    // Fill
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+    ctx.fillStyle = color.replace('1)', '0.08)');
+    ctx.fill();
+  }
+  if (netChartData.rx.length > 1) {
+    drawLine(netChartData.rx, 'rgba(0,212,255,1)');
+    drawLine(netChartData.tx, 'rgba(255,149,0,1)');
+  }
+  // Legend
+  ctx.font = '9px "Share Tech Mono"';
+  ctx.fillStyle = 'rgba(0,212,255,0.8)';
+  ctx.fillText('▶ RX', 8, 14);
+  ctx.fillStyle = 'rgba(255,149,0,0.8)';
+  ctx.fillText('▶ TX', 50, 14);
+}
+
+function pingAllMachines() {
+  showToast('info', 'PING SWEEP', 'Pinging all nodes on network...');
+  setTimeout(() => renderNetwork(), 1500);
+}
+
+// ——— DOCKER ———
+function renderDocker() {
+  const docker = DB.get('docker', []);
+  const machines = DB.get('machines', []);
+  const filterMachine = state.dockerFilter || document.getElementById('docker-machine-filter')?.value || 'all';
+  // Keep the select in sync with saved state
+  const filterSel = document.getElementById('docker-machine-filter');
+  if (filterSel && filterSel.value !== filterMachine) filterSel.value = filterMachine;
+  const tbody = document.getElementById('docker-tbody');
+  if (!tbody) return;
+
+  const user = state.currentUser;
+  const canSee = (d) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.dockerPerms === 'all') return true;
+    return Array.isArray(user.dockerPerms) && (user.dockerPerms.length === 0 || user.dockerPerms.includes(d.id));
+  };
+
+  const visible = docker.filter(d =>
+    canSee(d) && (filterMachine === 'all' || d.machine === filterMachine)
+  );
+
+  tbody.innerHTML = visible.map(d => {
+    const m = machines.find(x => x.id === d.machine);
+    const url = m ? `http://${m.ip}:${d.port}` : '#';
+    return `<tr>
+      <td><span style="font-size:15px;margin-right:6px;">${d.icon||'🐳'}</span>${d.name}</td>
+      <td style="color:var(--tt-text3);font-size:10px;">${d.image}</td>
+      <td style="color:var(--tt-text2);">${m ? m.name : d.machine}</td>
+      <td><span class="status-pill ${d.status}">${d.status.toUpperCase()}</span></td>
+      <td style="color:var(--tt-text3);">:${d.port}</td>
+      <td><button class="tt-btn sm" onclick="window.open('${url}','_blank')" ${d.port ? '' : 'disabled'}>↗ OPEN</button></td>
+      <td style="display:flex;gap:4px;">
+        ${user?.role === 'admin' ? `
+          <button class="tt-btn sm amber" onclick="toggleDocker('${d.id}')">${d.status === 'running' ? '⏹ STOP' : '▶ START'}</button>
+          <button class="tt-btn sm danger" onclick="removeDocker('${d.id}')">✕</button>
+        ` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (visible.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--tt-text3);padding:30px;">No containers visible for this user/filter</td></tr>';
+  }
+}
+
+function filterDockerByMachine() {
+  // Save filter selection to state so auto-refresh doesn't reset it
+  state.dockerFilter = document.getElementById('docker-machine-filter')?.value || 'all';
+  renderDocker();
+}
+
+function toggleDocker(id) {
+  const docker = DB.get('docker', []);
+  const d = docker.find(x => x.id === id);
+  if (!d) return;
+  d.status = d.status === 'running' ? 'stopped' : 'running';
+  DB.set('docker', docker);
+  renderDocker();
+  showToast('info', 'CONTAINER UPDATE', `${d.name} ${d.status === 'running' ? 'started' : 'stopped'}.`);
+}
+
+function removeDocker(id) {
+  const docker = DB.get('docker', []);
+  DB.set('docker', docker.filter(x => x.id !== id));
+  renderDocker();
+  renderShortcuts();
+}
+
+function updateDockerStats() {
+  const docker = DB.get('docker', []);
+  docker.forEach(d => {
+    if (d.status === 'running') {
+      d.cpu = (Math.random() * 10).toFixed(1) + '%';
+      d.mem = Math.round(Math.random() * 500 + 50) + 'MB';
+    }
+  });
+  DB.set('docker', docker);
+  if (state.view === 'docker') renderDocker();
+}
+
+// ——— SHORTCUTS ———
+function renderShortcuts() {
+  const docker = DB.get('docker', []);
+  const machines = DB.get('machines', []);
+  const user = state.currentUser;
+  if (!user) return;
+
+  // Docker shortcuts
+  const ds = document.getElementById('docker-shortcuts');
+  if (ds) {
+    const canSee = (d) => {
+      if (user.role === 'admin') return true;
+      if (user.dockerPerms === 'all') return true;
+      return Array.isArray(user.dockerPerms) && (user.dockerPerms.length === 0 || user.dockerPerms.includes(d.id));
+    };
+    const visibleDockers = docker.filter(d => d.port && canSee(d));
+    ds.innerHTML = visibleDockers.map(d => {
+      const m = machines.find(x => x.id === d.machine);
+      const url = m ? `http://${m.ip}:${d.port}` : '#';
+      return `
+        <div class="shortcut-card" onclick="window.open('${url}','_blank')">
+          <span class="shortcut-icon">${d.icon || '🐳'}</span>
+          <span class="shortcut-name">${d.name}</span>
+          <span class="shortcut-url">${url}</span>
+        </div>`;
+    }).join('');
+    if (!visibleDockers.length) ds.innerHTML = '<div style="color:var(--tt-text3);font-size:11px;padding:10px;">No Docker apps available.</div>';
+  }
+
+  // User shortcuts
+  const us = document.getElementById('user-shortcuts');
+  if (us) {
+    const shortcuts = user.shortcuts || [];
+    us.innerHTML = shortcuts.map(s => `
+      <div class="shortcut-card" onclick="window.open('${s.url}','_blank')">
+        <button class="shortcut-del" onclick="event.stopPropagation();removeShortcut('${s.id}')">✕</button>
+        <span class="shortcut-icon">${s.icon || '🌐'}</span>
+        <span class="shortcut-name">${s.name}</span>
+        <span class="shortcut-url">${s.url}</span>
+      </div>`).join('') +
+    `<div class="add-shortcut" onclick="showAddShortcutModal()">+ ADD SITE</div>`;
+  }
+}
+
+function removeShortcut(id) {
+  const users = DB.get('users', []);
+  const u = users.find(x => x.id === state.currentUser.id);
+  if (!u) return;
+  u.shortcuts = u.shortcuts.filter(s => s.id !== id);
+  DB.set('users', users);
+  state.currentUser = u;
+  renderShortcuts();
+}
+
+// ——— STORAGE ———
+function renderStorage() {
+  const pools = DB.get('pools', []);
+  const machines = DB.get('machines', []);
+  const pg = document.getElementById('pool-grid');
+  if (!pg) return;
+
+  if (pools.length === 0) {
+    pg.innerHTML = '<div style="color:var(--tt-text3);font-size:11px;padding:20px;grid-column:1/-1;">No storage pools configured. Add a TrueNAS, Ceph, or local pool.</div>';
+  } else {
+    pg.innerHTML = pools.map(p => {
+      const m = machines.find(x => x.id === p.machine);
+      const pct = (p.used / p.total * 100);
+      const healthColor = p.health === 'ONLINE' || p.health === 'OK' ? 'var(--tt-green)' : 'var(--tt-red)';
+      return `
+        <div class="pool-card">
+          <div class="pool-name">${p.name}</div>
+          <div class="pool-type">${p.type.toUpperCase()} · ${p.raidz || ''} · ${m ? m.name : p.machine}</div>
+          <div style="font-size:9px;margin-bottom:6px;color:${healthColor};">● ${p.health}</div>
+          <div class="pool-bar-track"><div class="pool-bar-fill" style="width:${pct.toFixed(0)}%"></div></div>
+          <div class="pool-stats">
+            <span>${fmtSize(p.used)} used</span>
+            <span>${pct.toFixed(0)}%</span>
+            <span>${fmtSize(p.total)} usable</span>
+          </div>
+          ${state.currentUser?.role === 'admin' ? `<button class="tt-btn sm danger" onclick="removePool('${p.id}')" style="margin-top:10px;">REMOVE</button>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  // All drives - use live agent data if available, skip simulated
+  const adp = document.getElementById('all-drives-panel');
+  if (adp) {
+    adp.innerHTML = '';
+    machines.forEach(m => {
+      const section = document.createElement('div');
+      section.innerHTML = `<div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">${m.name}</div><div class="section-divider-line"></div></div>`;
+      adp.appendChild(section);
+      const drivesDiv = document.createElement('div');
+      drivesDiv.id = `drives-${m.id}`;
+      adp.appendChild(drivesDiv);
+      if (m._liveData && m._liveData.drives && m._liveData.drives.length > 0) {
+        const mapped = m._liveData.drives.map(dr => ({
+          name: dr.device, model: dr.model || 'Unknown',
+          temp: dr.temp || 0, used: dr.used_gb * 1024,
+          total: dr.total_gb * 1024, health: dr.health || 'N/A', rpm: dr.rpm || 0,
+        }));
+        renderDrives(mapped, `drives-${m.id}`);
+      } else {
+        document.getElementById(`drives-${m.id}`).innerHTML =
+          `<div style="color:var(--tt-text3);font-size:11px;padding:10px;">No agent data — install agent on this node to see drives.</div>`;
+      }
+    });
+  }
+}
+
+function removePool(id) {
+  const pools = DB.get('pools', []);
+  DB.set('pools', pools.filter(p => p.id !== id));
+  renderStorage();
+}
+
+// ——— ADMIN ———
+function renderAdminPanel() {
+  const users = DB.get('users', []);
+  const tbody = document.getElementById('admin-user-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td>${u.username}</td>
+      <td><span class="status-pill ${u.role === 'admin' ? 'running' : 'warning'}">${u.role.toUpperCase()}</span></td>
+      <td><span class="status-pill ${u.active ? 'running' : 'stopped'}">${u.active ? 'ACTIVE' : 'SUSPENDED'}</span></td>
+      <td style="display:flex;gap:4px;">
+        <button class="tt-btn sm amber" onclick="toggleUserActive('${u.id}')">${u.active ? 'SUSPEND' : 'ACTIVATE'}</button>
+        ${u.id !== state.currentUser.id ? `<button class="tt-btn sm danger" onclick="deleteUser('${u.id}')">DELETE</button>` : ''}
+      </td>
+    </tr>`).join('');
+
+  // Populate permission user select
+  const psel = document.getElementById('perm-user-select');
+  if (psel) {
+    psel.innerHTML = users.map(u => `<option value="${u.id}">${u.username}</option>`).join('');
+    loadPermissions();
+  }
+}
+
+function toggleUserActive(id) {
+  const users = DB.get('users', []);
+  const u = users.find(x => x.id === id);
+  if (u) u.active = !u.active;
+  DB.set('users', users);
+  renderAdminPanel();
+}
+
+function deleteUser(id) {
+  if (!confirm('Delete this user account?')) return;
+  const users = DB.get('users', []);
+  DB.set('users', users.filter(u => u.id !== id));
+  renderAdminPanel();
+}
+
+function loadPermissions() {
+  const sel = document.getElementById('perm-user-select');
+  if (!sel) return;
+  const uid = sel.value;
+  const users = DB.get('users', []);
+  const docker = DB.get('docker', []);
+  const machines = DB.get('machines', []);
+  const u = users.find(x => x.id === uid);
+  if (!u) return;
+
+  const matrix = document.getElementById('perm-matrix');
+  matrix.innerHTML = `
+    <div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-text">DOCKER CONTAINERS</div><div class="section-divider-line"></div></div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:10px;color:var(--tt-amber);cursor:pointer;">
+        <input type="checkbox" class="form-checkbox" id="perm-docker-all" ${u.dockerPerms === 'all' ? 'checked' : ''} onchange="toggleAllDocker('${uid}')">
+        &nbsp; ALLOW ALL CONTAINERS
+      </label>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+      ${docker.map(d => `
+        <label style="font-size:10px;color:var(--tt-text);cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--tt-border);background:var(--tt-bg2);">
+          <input type="checkbox" class="form-checkbox" data-docker="${d.id}" 
+            ${u.dockerPerms === 'all' || (Array.isArray(u.dockerPerms) && u.dockerPerms.includes(d.id)) ? 'checked' : ''}
+            onchange="updateDockerPerm('${uid}','${d.id}',this.checked)">
+          ${d.icon || '🐳'} ${d.name}
+        </label>`).join('')}
+    </div>
+    <div class="section-divider" style="margin-top:16px;"><div class="section-divider-line"></div><div class="section-divider-text">VISIBLE VIEWS</div><div class="section-divider-line"></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
+      ${['systems','network','docker','storage','shortcuts'].map(view => `
+        <label style="font-size:10px;color:var(--tt-text);cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--tt-border);background:var(--tt-bg2);">
+          <input type="checkbox" class="form-checkbox" checked>
+          ${view.toUpperCase()}
+        </label>`).join('')}
+    </div>`;
+}
+
+function toggleAllDocker(uid) {
+  const users = DB.get('users', []);
+  const u = users.find(x => x.id === uid);
+  if (!u) return;
+  const checked = document.getElementById('perm-docker-all')?.checked;
+  u.dockerPerms = checked ? 'all' : [];
+  DB.set('users', users);
+  if (u.id === state.currentUser.id) state.currentUser = u;
+  loadPermissions();
+}
+
+function updateDockerPerm(uid, did, checked) {
+  const users = DB.get('users', []);
+  const u = users.find(x => x.id === uid);
+  if (!u || u.dockerPerms === 'all') return;
+  if (!Array.isArray(u.dockerPerms)) u.dockerPerms = [];
+  if (checked && !u.dockerPerms.includes(did)) u.dockerPerms.push(did);
+  else if (!checked) u.dockerPerms = u.dockerPerms.filter(x => x !== did);
+  DB.set('users', users);
+  if (u.id === state.currentUser.id) state.currentUser = u;
+}
+
+// ——— MODALS ———
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+function showAddMachineModal() { openModal('modal-add-machine'); }
+function showAddShortcutModal() { openModal('modal-add-shortcut'); }
+function showAddUserModal() { openModal('modal-add-user'); }
+function showAddDockerModal() { openModal('modal-add-docker'); }
+function showAddPoolModal() { openModal('modal-add-pool'); }
+
+function showRenameMachineModal() {
+  if (!state.selectedMachineId) return;
+  const machines = DB.get('machines', []);
+  const m = machines.find(x => x.id === state.selectedMachineId);
+  if (!m) return;
+  document.getElementById('rename-machine-input').value = m.name;
+  openModal('modal-rename-machine');
+}
+function showRenameMachineModalFor(id) {
+  state.selectedMachineId = id;
+  showRenameMachineModal();
+}
+
+function showProfileModal() { closeUserMenu(); }
+function toggleUserMenu() {
+  document.getElementById('user-menu').classList.toggle('hidden');
+}
+function closeUserMenu() {
+  document.getElementById('user-menu').classList.add('hidden');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#user-badge')) closeUserMenu();
+});
+
+function addMachine() {
+  const ip = document.getElementById('new-machine-ip').value.trim();
+  if (!ip) { alert('Enter an IP address or hostname'); return; }
+  let name = document.getElementById('new-machine-name').value.trim();
+  const type = document.getElementById('new-machine-type').value;
+  const port = parseInt(document.getElementById('new-machine-port').value) || 7071;
+  if (!name) name = ip.split('.').slice(-1)[0] ? 'NODE-' + ip.split('.').slice(-1)[0] : ip;
+  const machines = DB.get('machines', []);
+  machines.push({ id: 'm' + Date.now(), name: name.toUpperCase(), ip, type, port, online: true, lastSeen: Date.now() });
+  DB.set('machines', machines);
+  closeModal('modal-add-machine');
+  renderMachineList();
+  renderNetwork();
+  showToast('info', 'NODE ADDED', `${name} added to the network.`);
+}
+
+function removeMachine() {
+  if (!state.selectedMachineId) return;
+  removeMachineById(state.selectedMachineId);
+}
+function removeMachineById(id) {
+  if (!confirm('Remove this node from the dashboard?')) return;
+  const machines = DB.get('machines', []);
+  DB.set('machines', machines.filter(m => m.id !== id));
+  if (state.selectedMachineId === id) state.selectedMachineId = null;
+  renderMachineList();
+  renderNetwork();
+  showToast('info', 'NODE REMOVED', 'Node removed from the dashboard.');
+}
+
+function renameMachine() {
+  const name = document.getElementById('rename-machine-input').value.trim();
+  if (!name) return;
+  const machines = DB.get('machines', []);
+  const m = machines.find(x => x.id === state.selectedMachineId);
+  if (m) { m.name = name.toUpperCase(); DB.set('machines', machines); }
+  closeModal('modal-rename-machine');
+  renderMachineList();
+  if (state.selectedMachineId) updateSystemStats();
+}
+
+function refreshMachineData() {
+  const spinner = document.getElementById('cpu-spinner');
+  if (spinner) spinner.style.display = '';
+  setTimeout(() => updateSystemStats(), 800);
+}
+
+function addShortcut() {
+  const name = document.getElementById('new-shortcut-name').value.trim();
+  const url = document.getElementById('new-shortcut-url').value.trim();
+  const icon = document.getElementById('new-shortcut-icon').value.trim() || '🌐';
+  if (!name || !url) { alert('Enter a name and URL'); return; }
+  const users = DB.get('users', []);
+  const u = users.find(x => x.id === state.currentUser.id);
+  if (!u) return;
+  if (!u.shortcuts) u.shortcuts = [];
+  u.shortcuts.push({ id: 's' + Date.now(), name, url, icon });
+  DB.set('users', users);
+  state.currentUser = u;
+  closeModal('modal-add-shortcut');
+  renderShortcuts();
+  document.getElementById('new-shortcut-name').value = '';
+  document.getElementById('new-shortcut-url').value = '';
+  document.getElementById('new-shortcut-icon').value = '';
+}
+
+function addUser() {
+  const username = document.getElementById('new-user-name').value.trim();
+  const password = document.getElementById('new-user-pass').value;
+  const display = document.getElementById('new-user-display').value.trim() || username;
+  const role = document.getElementById('new-user-role').value;
+  if (!username || !password) { alert('Enter username and password'); return; }
+  const users = DB.get('users', []);
+  if (users.find(u => u.username.toLowerCase() === username.toLowerCase())) { alert('Username already exists'); return; }
+  users.push({ id: 'u' + Date.now(), username, password, display, role, active: true, shortcuts: [], dockerPerms: [], machinePerms: 'all' });
+  DB.set('users', users);
+  closeModal('modal-add-user');
+  renderAdminPanel();
+  showToast('ok', 'USER CREATED', `Account "${username}" created successfully.`);
+}
+
+function addDocker() {
+  const name = document.getElementById('new-docker-name').value.trim();
+  const image = document.getElementById('new-docker-image').value.trim();
+  const machine = document.getElementById('new-docker-machine').value;
+  const port = parseInt(document.getElementById('new-docker-port').value) || 80;
+  const icon = document.getElementById('new-docker-icon').value.trim() || '🐳';
+  if (!name || !image) { alert('Enter container name and image'); return; }
+  const docker = DB.get('docker', []);
+  docker.push({ id: 'd' + Date.now(), name, image, machine, status: 'stopped', port, icon, cpu: '0%', mem: '0MB' });
+  DB.set('docker', docker);
+  closeModal('modal-add-docker');
+  renderDocker();
+  renderShortcuts();
+  showToast('info', 'CONTAINER REGISTERED', `${name} added to the registry.`);
+}
+
+function addPool() {
+  const name = document.getElementById('new-pool-name').value.trim();
+  const type = document.getElementById('new-pool-type').value;
+  const machine = document.getElementById('new-pool-machine').value;
+  const api = document.getElementById('new-pool-api').value.trim();
+  if (!name) { alert('Enter a pool name'); return; }
+  const pools = DB.get('pools', []);
+  pools.push({
+    id: 'p' + Date.now(), name, type, machine,
+    used: 0, total: 0, health: 'UNKNOWN', raidz: type.toUpperCase(), api
+  });
+  DB.set('pools', pools);
+  closeModal('modal-add-pool');
+  renderStorage();
+  showToast('info', 'POOL ADDED', `Storage pool "${name}" added.`);
+}
+
+// ——— ALERTS / TOASTS ———
+function showToast(type, title, msg, duration = 5000) {
+  const container = document.getElementById('alert-container');
+  const toast = document.createElement('div');
+  toast.className = `alert-toast ${type}`;
+  const icons = { info: 'ℹ', danger: '⚠', ok: '✓' };
+  toast.innerHTML = `
+    <span class="alert-toast-icon" style="color:${type === 'danger' ? 'var(--tt-red)' : type === 'ok' ? 'var(--tt-green)' : 'var(--tt-cyan)'};">${icons[type] || '●'}</span>
+    <div>
+      <div class="alert-toast-title">${title}</div>
+      <div class="alert-toast-msg">${msg}</div>
+    </div>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.5s'; setTimeout(() => toast.remove(), 500); }, duration);
+}
+
+function incrementAlertCount() {
+  const counter = document.getElementById('alert-counter');
+  const badge = document.getElementById('alert-count');
+  counter.style.display = '';
+  const n = parseInt(badge.textContent) + 1 || 1;
+  badge.textContent = n + ' ALERT' + (n > 1 ? 'S' : '');
+}
+
+
+// ================================================================
+// REAL AGENT INTEGRATION
+// When a machine has an agent running, fetch live data from it.
+// Falls back to simulated data if agent is unreachable.
+// ================================================================
+
+async function fetchAgentData(machine) {
+  try {
+    // Direct fetch to agent (works if CORS is open on agent, or same-origin via TrueNAS proxy)
+    const url = `http://${machine.ip}:${machine.port}/stats`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    machine._liveData = d;
+    machine._liveDataAge = Date.now();
+    return d;
+  } catch(e) {
+    // Try via TrueNAS nginx proxy path /api/<ip>/stats (if nginx IS present)
+    try {
+      const proxyUrl = `/api/${machine.ip}/stats`;
+      const res2 = await fetch(proxyUrl, { signal: AbortSignal.timeout(3000) });
+      if (res2.ok) {
+        const d2 = await res2.json();
+        machine._liveData = d2;
+        machine._liveDataAge = Date.now();
+        return d2;
+      }
+    } catch(e2) {}
+    return null;  // no agent reachable, caller uses simulated data
+  }
+}
+
+async function fetchAgentIdentity(machine) {
+  // Auto-detect OEM machine name when adding a node
+  try {
+    const url = `http://${machine.ip}:${machine.port}/stats`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.identity) {
+      const name = d.identity.oem_name || d.identity.hostname;
+      return name ? name.toUpperCase().replace(/[^A-Z0-9_\-]/g, '-') : null;
+    }
+  } catch(e) {}
+  return null;
+}
+
+// Override addMachine to auto-detect name via agent
+const _origAddMachine = addMachine;
+window.addMachine = async function() {
+  const ip   = document.getElementById('new-machine-ip').value.trim();
+  const port = parseInt(document.getElementById('new-machine-port').value) || 7071;
+  let name   = document.getElementById('new-machine-name').value.trim();
+  if (!ip) { alert('Enter an IP address or hostname'); return; }
+
+  // Try auto-detect if no name given
+  if (!name) {
+    showToast('info', 'AUTO-DETECT', `Querying ${ip}:${port} for machine identity...`);
+    const detected = await fetchAgentIdentity({ ip, port });
+    if (detected) {
+      document.getElementById('new-machine-name').value = detected;
+      showToast('ok', 'DETECTED', `Found: ${detected}`);
+    }
+  }
+  _origAddMachine();
+};
+
+// Extend updateSystemStats to prefer live agent data
+const _origUpdateSystemStats = updateSystemStats;
+window.updateSystemStats = async function() {
+  const machines = DB.get('machines', []);
+  const m = machines.find(x => x.id === state.selectedMachineId);
+  if (!m) return;
+
+  // Try live data (don't block UI — fire and forget, next tick will show it)
+  const liveData = await fetchAgentData(m);
+  if (liveData) {
+    // Merge live data into machine object so generateMachineData can use it
+    m._liveData = liveData;
+    DB.set('machines', machines);
+    applyLiveData(m, liveData);
+    document.getElementById('cpu-spinner').style.display = 'none';
+  } else {
+    _origUpdateSystemStats();
+  }
+};
+
+function applyLiveData(m, d) {
+  // Machine header
+  document.getElementById('detail-machine-name').textContent = m.name;
+  const oem = d.identity?.oem_name ? ` (${d.identity.oem_name})` : '';
+  document.getElementById('detail-machine-meta').textContent =
+    `${d.os?.system || ''} ${d.os?.release || ''}${oem} — ${m.ip} — ${m.online ? '● ONLINE' : '✕ OFFLINE'}`;
+
+  // CPU
+  const cl = d.cpu?.percent || 0;
+  document.getElementById('cpu-load').className = `stat-value ${cl>80?'crit':cl>60?'warn':''}`;
+  document.getElementById('cpu-load').innerHTML = `${cl.toFixed(0)}<span class="stat-unit">%</span>`;
+  setBar('cpu-load-bar', cl);
+  const ct = d.cpu_temp?.cpu || 0;
+  document.getElementById('cpu-temp').className = `stat-value ${ct>85?'crit':ct>70?'warn':'ok'}`;
+  document.getElementById('cpu-temp').innerHTML = `${ct?ct.toFixed(0):'N/A'}<span class="stat-unit">${ct?'°C':''}</span>`;
+  document.getElementById('cpu-temp-sub').textContent = ct>85?'⚠ THERMAL THROTTLE RISK':ct>70?'ELEVATED':'NOMINAL';
+  document.getElementById('cpu-freq').innerHTML = d.cpu?.freq_current && d.cpu.freq_current > 0
+    ? `${d.cpu.freq_current.toFixed(2)}<span class="stat-unit">GHz</span>`
+    : d.cpu?.freq_max ? `${d.cpu.freq_max.toFixed(2)}<span class="stat-unit">GHz</span>`
+    : `—`;
+  document.getElementById('cpu-model').textContent = d.cpu?.model || '—';
+  document.getElementById('cpu-cores').innerHTML =
+    `${d.cpu?.cores_physical||'?'}<span class="stat-unit">C</span> / ${d.cpu?.cores_logical||'?'}<span class="stat-unit">T</span>`;
+  document.getElementById('cpu-arch').textContent = d.cpu?.arch || '—';
+
+  // Threads
+  const threads = d.cpu?.per_cpu || [];
+  const tg = document.getElementById('thread-grid');
+  if (tg.children.length !== threads.length) {
+    tg.innerHTML = threads.map((_,i) =>
+      `<div class="thread-bar-wrap">
+        <div class="thread-bar-container"><div class="thread-bar" id="tb-${i}" style="height:0%"></div></div>
+        <span class="thread-num">T${i+1}</span>
+      </div>`).join('');
+  }
+  threads.forEach((v,i) => {
+    const bar = document.getElementById(`tb-${i}`);
+    if (bar) { bar.style.height=v+'%'; bar.className=`thread-bar${v>80?' crit':v>60?' warn':''}`; }
+  });
+
+  // GPU
+  const g = d.gpu || {};
+  document.getElementById('gpu-name').textContent = (g.igpu?'○ iGPU: ':'● dGPU: ') + (g.name||'Unknown');
+  document.getElementById('gpu-temp').innerHTML = g.temp!=null?`${g.temp}<span class="stat-unit">°C</span>`:'N/A';
+  document.getElementById('gpu-temp').className = `stat-value ${g.temp>80?'crit':g.temp>65?'warn':'ok'}`;
+  document.getElementById('gpu-load').innerHTML = g.load!=null?`${g.load}<span class="stat-unit">%</span>`:'N/A';
+  setBar('gpu-bar', g.load||0);
+  document.getElementById('gpu-vram').innerHTML = g.vram_used!=null?`${g.vram_used}<span class="stat-unit">MB</span>`:'N/A';
+  document.getElementById('gpu-vram-total').textContent = g.vram_total ? `/ ${g.vram_total} MB VRAM` : '';
+
+  // NPU
+  const n = d.npu || {};
+  if (n.present) {
+    document.getElementById('npu-status').textContent = 'DETECTED';
+    document.getElementById('npu-status').className = 'stat-value ok';
+    document.getElementById('npu-name').textContent = n.name || '—';
+    document.getElementById('npu-load').innerHTML = n.load!=null?`${n.load.toFixed(0)}<span class="stat-unit">%</span>`:'—';
+    document.getElementById('npu-tops').innerHTML = n.tops?`${n.tops}<span class="stat-unit">TOPs</span>`:'—';
+  } else {
+    document.getElementById('npu-status').textContent = 'N/A';
+    document.getElementById('npu-status').className = 'stat-value';
+    document.getElementById('npu-name').textContent = 'Not detected in this node';
+    document.getElementById('npu-load').textContent = 'N/A';
+    document.getElementById('npu-tops').textContent = 'N/A';
+  }
+
+  // RAM - use GiB throughout
+  const r = d.ram || {};
+  const ramTotal = r.total || 0;
+  const ramUsed = r.used || 0;
+  const ramFree = r.available || (ramTotal - ramUsed);
+  const ramCache = r.cached || 0;
+  // ZFS ARC: psutil reports it as part of "cached" on Linux. Try to get arc_size from agent.
+  const arcGiB = r.arc_gib || 0;
+  const realCache = Math.max(0, ramCache - arcGiB);
+  const ramPct = r.percent || 0;
+  const arcPct = ramTotal > 0 ? (arcGiB / ramTotal * 100) : 0;
+  const cachePct = ramTotal > 0 ? (realCache / ramTotal * 100) : 0;
+  const freePct = ramTotal > 0 ? (ramFree / ramTotal * 100) : 0;
+
+  document.getElementById('ram-used').innerHTML = `${ramUsed.toFixed(1)}<span class="stat-unit">GiB</span>`;
+  document.getElementById('ram-used').className = `stat-value ${ramPct>90?'crit':ramPct>75?'warn':''}`;
+  document.getElementById('ram-total').textContent = `/ ${ramTotal.toFixed(1)} GiB TOTAL`;
+  setBar('ram-bar', ramPct);
+
+  const arcEl = document.getElementById('ram-arc');
+  if (arcEl) {
+    arcEl.innerHTML = `${arcGiB > 0 ? arcGiB.toFixed(1) : ramCache.toFixed(1)}<span class="stat-unit">GiB</span>`;
+    document.getElementById('ram-arc-pct').textContent = `${arcPct > 0 ? arcPct.toFixed(0) : (ramTotal>0?(ramCache/ramTotal*100).toFixed(0):0)}% of total`;
+    setBar('ram-arc-bar', arcPct > 0 ? arcPct : (ramTotal>0?ramCache/ramTotal*100:0));
+  }
+  const cacheEl = document.getElementById('ram-cache');
+  if (cacheEl) cacheEl.innerHTML = `${realCache > 0 ? realCache.toFixed(1) : ramCache.toFixed(1)}<span class="stat-unit">GiB</span>`;
+
+  const freeEl = document.getElementById('ram-free');
+  if (freeEl) {
+    freeEl.innerHTML = `${ramFree.toFixed(1)}<span class="stat-unit">GiB</span>`;
+    freeEl.className = `stat-value ${freePct < 10 ? 'crit' : freePct < 20 ? 'warn' : 'ok'}`;
+    document.getElementById('ram-free-pct').textContent = `${freePct.toFixed(0)}% available`;
+  }
+
+  document.getElementById('swap-used').innerHTML = `${(r.swap_used||0).toFixed(1)}<span class="stat-unit">GiB</span>`;
+  setBar('swap-bar', r.swap_percent||0);
+
+  // Memory map bar
+  if (document.getElementById('ram-map-used')) {
+    const usedOnlyPct = Math.max(0, ramPct - arcPct - cachePct);
+    document.getElementById('ram-map-used').style.width  = usedOnlyPct.toFixed(1) + '%';
+    document.getElementById('ram-map-arc').style.width   = (arcPct > 0 ? arcPct : 0).toFixed(1) + '%';
+    document.getElementById('ram-map-cache').style.width = cachePct.toFixed(1) + '%';
+  }
+
+  // Drives — map agent format, use correct GiB/TiB units
+  if (d.drives && d.drives.length > 0) {
+    const mapped = d.drives.map(dr => ({
+      name: dr.device,
+      model: dr.model || 'Unknown',
+      temp: dr.temp || 0,
+      used_gb: dr.used_gb,
+      total_gb: dr.total_gb,
+      health: dr.health || 'N/A',
+      rpm: dr.rpm || 0,
+    }));
+    renderDrivesLive(mapped, 'drives-panel');
+  }
+
+  // ZFS pools — auto-import/update from agent
+  if (d.zfs_pools && d.zfs_pools.length > 0) {
+    const pools = DB.get('pools', []);
+    let changed = false;
+    d.zfs_pools.forEach(zp => {
+      const existing = pools.find(p => p.name === zp.name && p.machine === m.id);
+      if (existing) {
+        existing.used = zp.alloc_gib; existing.total = zp.size_gib;
+        existing.health = zp.health; existing.raidz = zp.vdev;
+        changed = true;
+      } else {
+        pools.push({ id: 'p_'+zp.name+'_'+m.id, name: zp.name, type: 'zfs',
+          machine: m.id, used: zp.alloc_gib, total: zp.size_gib,
+          health: zp.health, raidz: zp.vdev });
+        changed = true;
+        showToast('ok', 'POOL DETECTED', `ZFS pool "${zp.name}" auto-imported from ${m.name}`);
+      }
+    });
+    if (changed) { DB.set('pools', pools); if (state.view === 'storage') renderStorage(); }
+  }
+
+  document.getElementById('cpu-spinner').style.display = 'none';
+}
+
+// ——— UNIT HELPERS ———
+function fmtSize(gib) {
+  if (gib >= 1024) return (gib / 1024).toFixed(2) + ' TiB';
+  if (gib >= 1)    return gib.toFixed(2) + ' GiB';
+  return (gib * 1024).toFixed(0) + ' MiB';
+}
+function fmtSizeGB(gb) {
+  // psutil reports in GB (base-10). Convert to GiB (base-2).
+  return fmtSize(gb / 1.073741824);
+}
+
+// renderDrivesLive: real GB values from agent, proper GiB/TiB display
+function renderDrivesLive(drives, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!drives || drives.length === 0) {
+    container.innerHTML = '<div style="color:var(--tt-text3);font-size:11px;padding:20px;text-align:center;">No drives detected</div>';
+    return;
+  }
+  container.innerHTML = drives.map(d => {
+    const pct = d.total_gb > 0 ? (d.used_gb / d.total_gb * 100) : 0;
+    const tempClass = d.temp > 50 ? 'crit' : d.temp > 40 ? 'warn' : 'ok';
+    const isNVMe = d.name && d.name.includes('nvme');
+    return `
+    <div style="display:flex;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(13,74,110,0.3);flex-wrap:wrap;">
+      <div style="min-width:120px;">
+        <div style="font-size:12px;color:var(--tt-text);">${isNVMe ? '▸ NVMe' : '◼ HDD/SSD'} ${(d.name||'').split('/').pop().toUpperCase()}</div>
+        <div style="font-size:9px;color:var(--tt-text3);margin-top:2px;">${d.model}</div>
+      </div>
+      <div style="flex:1;min-width:150px;">
+        <div class="meter-label-row"><span>${fmtSizeGB(d.used_gb)} used</span><span>${fmtSizeGB(d.total_gb)}</span></div>
+        <div class="meter-track"><div class="meter-fill${pct>85?' crit':pct>70?' warn':''}" style="width:${pct.toFixed(0)}%"></div></div>
+      </div>
+      <div style="text-align:center;min-width:60px;">
+        <div class="stat-value ${d.temp > 0 ? tempClass : ''}" style="font-size:16px;">${d.temp > 0 ? d.temp.toFixed(0)+'°' : 'N/A'}</div>
+        <div style="font-size:9px;color:var(--tt-text3);">TEMP</div>
+      </div>
+      <div style="min-width:60px;">
+        <div style="font-size:9px;color:${d.health==='OK'?'var(--tt-green)':'var(--tt-text3)'};">${d.health}</div>
+        <div style="font-size:9px;color:var(--tt-text3);">${d.rpm ? d.rpm+'RPM' : 'FLASH'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ——— INIT ———
+initData();
+</script>
+</body>
+</html>

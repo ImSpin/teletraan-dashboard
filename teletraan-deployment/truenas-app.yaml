@@ -1,0 +1,109 @@
+# ============================================================
+# TELETRAAN I — TrueNAS SCALE Custom App Definition
+#
+# HOW TO DEPLOY ON TRUENAS SCALE:
+#   Apps → Discover Apps → Custom App → paste this YAML
+#   (TrueNAS SCALE 23.10+ supports docker-compose style custom apps)
+#
+# Alternatively use: Apps → Custom App → Use Docker Compose
+# and paste the "services:" section below.
+#
+# The dashboard runs on port 7070.
+# Access it at: http://<your-truenas-ip>:7070
+# ============================================================
+
+version: "3.8"
+
+services:
+
+  # ── Dashboard (serves the HTML file via Python http.server) ──
+  teletraan-dashboard:
+    image: python:3.12-slim
+    container_name: teletraan-dashboard
+    restart: unless-stopped
+    ports:
+      - "7070:7070"
+    volumes:
+      # Map a TrueNAS dataset to hold the dashboard file.
+      # Create a dataset first: Storage → Add Dataset → "teletraan"
+      # Default TrueNAS path shown below — adjust to your pool name.
+      - /mnt/tank0/teletraan:/app:ro
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'TELETRAAN I starting on port 7070...' &&
+        python3 -m http.server 7070 --bind 0.0.0.0
+      "
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7070/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "teletraan.role=dashboard"
+      - "teletraan.ha=primary"
+
+  # ── Agent on TrueNAS itself ──────────────────────────────────
+  # This exposes TrueNAS's own hardware stats to the dashboard.
+  # NOTE: needs privileged + host network to read sensors.
+  teletraan-agent:
+    image: python:3.12-slim
+    container_name: teletraan-agent
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    pid: "host"
+    volumes:
+      - /mnt/tank0/teletraan/agent.py:/app/agent.py:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    working_dir: /app
+    environment:
+      - AGENT_PORT=7071
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+    command: >
+      sh -c "
+        pip install psutil flask flask-cors -q --break-system-packages 2>/dev/null || true &&
+        python3 /app/agent.py
+      "
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7071/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ── Named volume alternative (if you prefer not to use a dataset path) ──
+# Uncomment and remove the bind mount above if you want Docker to manage storage.
+# volumes:
+#   teletraan-data:
+#     driver: local
+
+# ============================================================
+# SETUP STEPS FOR TRUENAS SCALE:
+#
+#  1. Create a dataset for the dashboard files:
+#       Storage → Add Dataset
+#       Name: teletraan
+#       Path will be: /mnt/<your-pool>/teletraan
+#
+#  2. Upload the two files to that dataset (via SMB share or SCP):
+#       - teletraan-dashboard.html  (rename to index.html)
+#       - agent.py
+#
+#  3. Deploy this app:
+#       Apps → Discover Apps → Custom App
+#       Paste the services: block above
+#
+#  4. Access dashboard at:
+#       http://<truenas-ip>:7070
+#
+#  5. On each OTHER Ubuntu machine run:
+#       sudo bash deploy-agent.sh 7071
+#     (or a different port per machine if 7071 is taken)
+#
+#  6. Add each machine in the dashboard:
+#       Sidebar → + button
+#       IP: <machine-ip>, Agent Port: 7071
+# ============================================================
