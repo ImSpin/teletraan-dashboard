@@ -2261,8 +2261,7 @@ function clearDemoData() {
   showToast('ok', 'CACHE CLEARED', 'Demo data removed. Add your real nodes via the + button.');
 }
 
-
-  const ip = document.getElementById('new-machine-ip').value.trim();
+function addMachine() {
   if (!ip) { alert('Enter an IP address or hostname'); return; }
   let name = document.getElementById('new-machine-name').value.trim();
   const type = document.getElementById('new-machine-type').value;
