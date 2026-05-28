@@ -1,0 +1,102 @@
+# ============================================================
+# TELETRAAN I — TrueNAS SCALE Custom App
+# Source: https://github.com/ImSpin/teletraan-dashboard
+#
+# HOW TO INSTALL:
+#   Apps → Discover Apps → Custom App
+#   → Install via YAML → paste this file → Install
+#
+# On every container start, the init container pulls the
+# latest files from GitHub automatically. No manual SCP needed.
+# ============================================================
+
+services:
+
+  # ── Init: pulls latest files from GitHub before anything starts ──
+  teletraan-init:
+    image: alpine/git:latest
+    container_name: teletraan-init
+    volumes:
+      - teletraan-files:/app
+    command: >
+      sh -c "
+        if [ -d /app/.git ]; then
+          echo 'Pulling latest from GitHub...' &&
+          cd /app && git pull origin main;
+        else
+          echo 'Cloning from GitHub...' &&
+          git clone https://github.com/ImSpin/teletraan-dashboard.git /app;
+        fi &&
+        cp /app/teletraan-dashboard.html /app/index.html &&
+        echo 'Files ready.'
+      "
+    restart: "no"
+
+  # ── Dashboard: serves the HTML file ──────────────────────────────
+  teletraan-dashboard:
+    image: python:3.12-slim
+    container_name: teletraan-dashboard
+    restart: unless-stopped
+    ports:
+      - "7070:7070"
+    volumes:
+      - teletraan-files:/app:ro
+    working_dir: /app
+    command: >
+      sh -c "python3 -m http.server 7070 --bind 0.0.0.0"
+    depends_on:
+      teletraan-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7070/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Agent: exposes this machine's hardware stats ─────────────────
+  teletraan-agent:
+    image: python:3.12-slim
+    container_name: teletraan-agent
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    pid: "host"
+    volumes:
+      - teletraan-files:/app:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    working_dir: /app
+    environment:
+      - AGENT_PORT=7071
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+    command: >
+      sh -c "
+        apt-get update -qq &&
+        apt-get install -y -q smartmontools &&
+        pip install psutil flask flask-cors -q --break-system-packages &&
+        python3 /app/agent.py
+      "
+    depends_on:
+      teletraan-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7071/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+# ── Shared volume holds the cloned repo files ────────────────────
+volumes:
+  teletraan-files:
+    driver: local
+
+# ============================================================
+# UPDATING:
+#   Apps → teletraan → Stop → Start
+#   The init container will git pull on every startup.
+#
+# Or from SSH:
+#   sudo docker restart teletraan-init && \
+#   sudo docker restart teletraan-dashboard teletraan-agent
+# ============================================================
